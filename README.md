@@ -6,6 +6,6 @@ colorTo: blue
 sdk: docker
 pinned: false
 ---
-Hello
 
-Check out the configuration reference at https://huggingface.co/docs/hub/spaces-config-reference
+# About
+Numbers detection using a [YOLOv8](https://docs.ultralytics.com/modes/) model trained on the [SVHN](http://ufldl.stanford.edu/housenumbers/) dataset
