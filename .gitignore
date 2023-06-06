@@ -163,7 +163,5 @@ cython_debug/
 datasets/
 runs/
 wandb/
-models/
 *.pt
-*.onnx
 .vscode/

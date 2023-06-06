@@ -1,0 +1,43 @@
+[tool.poetry]
+name = "digits-detection"
+version = "0.1.0"
+description = ""
+authors = ["thawro <tomaszhawro.kontakt@gmail.com>"]
+readme = "README.md"
+packages = [{ include = "src" }]
+
+[tool.poetry.dependencies]
+python = "^3.11"
+torch = { version = "2.0.1+cu117", source = "torchcu117" }
+plotly = "^5.14.0"
+wandb = "^0.14.0"
+pre-commit = "^3.2.2"
+black = "^23.3.0"
+isort = "^5.12.0"
+ipykernel = "^6.22.0"
+torchinfo = "^1.7.2"
+pytorch-lightning = "^2.0.0"
+torchvision = "^0.15.2"
+rich = "^13.3.5"
+matplotlib = "^3.7.1"
+scipy = "1.9.2"
+ipywidgets = "^8.0.6"
+colorlog = "^6.7.0"
+natsort = "^8.3.1"
+mat73 = "^0.60"
+ultralytics = "^8.0.112"
+onnxruntime = "^1.15.0"
+supervision = "^0.8.0"
+albumentations = "^1.3.0"
+gradio = "^3.30.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+
+[[tool.poetry.source]]
+name = "torchcu117"
+url = "https://download.pytorch.org/whl/cu117"
+priority = "explicit"
