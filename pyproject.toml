@@ -32,6 +32,9 @@ albumentations = "^1.3.0"
 gradio = "^3.30.0"
 
 
+[tool.poetry.group.dev.dependencies]
+pylint = "^2.17.4"
+
 [build-system]
 requires = ["poetry-core"]
 build-backend = "poetry.core.masonry.api"

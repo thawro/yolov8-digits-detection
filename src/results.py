@@ -1,6 +1,6 @@
 from src.transforms import xywh2xyxy
 from src.utils.vision import non_maximum_supression
-from src.visualization import plot_yolo_labels, ID2COLOR, ID2NAME
+from src.visualization import plot_yolo_labels, ID2NAME
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -73,7 +73,7 @@ class DetectionResults:
             class_ids=self.boxes.cls.tolist(),
             confidences=self.boxes.conf.tolist(),
             id2name=ID2NAME,
-            id2color=ID2COLOR,
+            # id2color=ID2COLOR,
         )
         if plot:
             plt.figure(figsize=(12, 12))
