@@ -15,7 +15,6 @@ from PIL import Image
 import torch
 import glob
 from pathlib import Path
-import os
 import mat73
 import numpy as np
 from tqdm.auto import tqdm
@@ -25,8 +24,10 @@ log = get_pylogger(__name__)
 SVHN_KEYS = ["label", "top", "left", "height", "width"]
 
 
-def parse_annotation_svhn2yolo(bbox_info: dict[str, list[np.ndarray] | np.ndarray], filepath: str):
-    img = Image.open(filepath)
+def parse_annotation_svhn2yolo(
+    bbox_info: dict[str, list[np.ndarray] | np.ndarray], img_filepath: str
+):
+    img = Image.open(img_filepath)
     w, h = img.size
     annotations = tuple(bbox_info[k] for k in SVHN_KEYS)
     if not isinstance(annotations[0], list):

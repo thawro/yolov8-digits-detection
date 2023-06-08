@@ -3,7 +3,7 @@ import glob
 import numpy as np
 from src.onnx_model import YoloOnnxModel
 
-model = YoloOnnxModel("models/model.onnx", 0.2, 0.7)
+model = YoloOnnxModel("models/model2.onnx", 0.2, 0.7)
 examples = glob.glob("datasets/SVHN/examples/*")
 
 
@@ -21,8 +21,8 @@ def predict(gray_img):
 gr.Interface(
     fn=predict,
     inputs=gr.Sketchpad(
-        source="canvas", tool="color-sketch", type="numpy", shape=(256, 128), invert_colors=False
+        source="canvas", tool="color-sketch", type="numpy", shape=(1280, 640), invert_colors=False
     ),
-    outputs=gr.Image(type="numpy", shape=(256, 128)),
+    outputs=gr.Image(type="numpy", shape=(1280, 640)),
     examples=examples,
 ).launch(server_name="0.0.0.0")
