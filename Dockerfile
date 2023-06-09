@@ -1,10 +1,10 @@
 # pull official base image
-FROM node:18.16.0-alpine
+FROM node:18.16.0
 
 # set working directory
 WORKDIR /app
 
-RUN adduser -u 1000 user
+RUN useradd -m -u 1000 user
 USER user
 ENV HOME=/home/user \
     PATH=/home/user/.local/bin:$PATH
