@@ -4,7 +4,7 @@ FROM node:18.16.0-alpine
 # set working directory
 WORKDIR /app
 
-RUN useradd -m -u 1000 user
+RUN adduser -u 1000 user
 USER user
 ENV HOME=/home/user \
     PATH=/home/user/.local/bin:$PATH
