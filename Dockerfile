@@ -6,11 +6,16 @@ WORKDIR /app
 
 RUN userdel -r node
 
-USER root
+# USER root
+RUN useradd -m -u 1000 user
+USER user
+ENV HOME=/home/user \
+    PATH=/home/user/.local/bin:$PATH
 
-COPY frontend/ ./
+WORKDIR $HOME/app
 
-RUN npm cache clean --force
+COPY --chown=user frontend/ $HOME
+
 RUN npm install
 
 # start app
