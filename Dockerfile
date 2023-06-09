@@ -10,7 +10,7 @@ USER root
 
 COPY frontend/ ./
 
-
+RUN npm cache clean --force
 RUN npm install
 
 # start app
