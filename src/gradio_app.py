@@ -3,7 +3,7 @@ import glob
 import numpy as np
 from src.onnx_model import YoloOnnxModel
 
-model = YoloOnnxModel("models/model2.onnx", 0.2, 0.7)
+model = YoloOnnxModel("models/model2.onnx", 0.25, 0.7)
 examples = glob.glob("datasets/SVHN/examples/*")
 
 
