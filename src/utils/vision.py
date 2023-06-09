@@ -15,7 +15,7 @@ def non_maximum_supression(boxes: np.ndarray, conf: np.ndarray, iou_threshold: f
         ious = calculate_iou(boxes[box_id, :], boxes[sorted_indices[1:], :])
 
         # Remove boxes with IoU over the threshold
-        keep_indices = np.where(ious < iou_threshold)[0]
+        keep_indices = np.where(ious <= iou_threshold)[0]
 
         # print(keep_indices.shape, sorted_indices.shape)
         sorted_indices = sorted_indices[keep_indices + 1]
