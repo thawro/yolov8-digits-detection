@@ -14,7 +14,6 @@ const App = () => {
   const inputImage = useRef(null);
   const imageRef = useRef(null);
   const canvasRef = useRef(null);
-  const canvasRef2 = useRef(null);
 
 
   // Configs
