@@ -37,13 +37,6 @@ export const detectImage = async (
 
 
 
-    const iouConfThreshold = new Tensor(
-        "float32",
-        new Float32Array([
-            iouThreshold, // iou threshold
-            scoreThreshold, // score threshold
-        ])
-    ); // nms config tensor
     const { selected } = await session.nms.run({ detection: output0, config: config }); // perform nms and filter boxes
 
     const boxes = [];

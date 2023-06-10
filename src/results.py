@@ -4,6 +4,7 @@ from src.visualization import plot_yolo_labels, ID2NAME
 
 import matplotlib.pyplot as plt
 import numpy as np
+import onnx
 
 
 class Boxes:
@@ -37,14 +38,13 @@ class Boxes:
 class DetectionResults:
     def __init__(
         self,
-        orig_image: np.ndarray | None = None,
+        orig_image: np.ndarray,
         xywh: np.ndarray | None = None,
         cls: np.ndarray | None = None,
         conf: np.ndarray | None = None,
-        w: int | None = None,
-        h: int | None = None,
     ):
         self.orig_image = orig_image
+        w, h = orig_image.shape[:2]
         self.boxes = Boxes(xywh, cls, conf, w, h)
 
     @property

@@ -55,8 +55,9 @@ class YoloOnnxModel(OnnxModel):
 
         # Filter out object confidence scores below threshold
         conf = np.max(predictions[:, 4:], axis=1)
-        predictions = predictions[conf > conf_threshold, :]
-        conf = conf[conf > conf_threshold]
+        conf_mask = conf > conf_threshold
+        predictions = predictions[conf_mask, :]
+        conf = conf[conf_mask]
 
         if len(conf) == 0:
             return DetectionResults(orig_image=input_image)
@@ -66,16 +67,11 @@ class YoloOnnxModel(OnnxModel):
 
         pad_x, pad_y = pad
         ratio_x, ratio_y = ratio
-
         boxes_xywh = predictions[:, :4]
         boxes_xywh[:, 0] -= pad_x
         boxes_xywh[:, 1] -= pad_y
-        w = self.input_w - pad_x * 2  # / ratio_x
-        h = self.input_h - pad_y * 2  # / ratio_y
         boxes_xywh = np.divide(boxes_xywh, np.array([ratio_x, ratio_y, ratio_x, ratio_y]))
-        orig_w = w / ratio_x
-        orig_h = h / ratio_y
-        results = DetectionResults(input_image, boxes_xywh, class_ids, conf, orig_w, orig_h)
+        results = DetectionResults(input_image, boxes_xywh, class_ids, conf)
 
         results.non_maximum_supression(iou_threshold)
         return results
