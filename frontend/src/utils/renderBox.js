@@ -21,8 +21,8 @@ export const renderBoxes = (canvas, boxes) => {
     boxes.forEach((box) => {
         const class_id = labels[box.label];
         const color = colors.get(box.label);
-        const score = (box.probability).toFixed(1);
-        const [xn, yn, wn, hn] = box.boundingNormalized; // center x and y
+        const score = (box.conf).toFixed(1);
+        const [xn, yn, wn, hn] = box.box_xywhn; // center x and y
 
         let x = (xn * W)
         let y = (yn * H)

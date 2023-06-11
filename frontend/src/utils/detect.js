@@ -22,60 +22,47 @@ export const detectImage = async (
     inputShape
 ) => {
     const [modelWidth, modelHeight] = inputShape.slice(2);
-    const [input, ratioX, ratioY, padLeft, padTop] = preprocessing(image, modelWidth, modelHeight);
-
+    const sourceImgC4 = cv.imread(image); // read from img tag
+    const preprocessed = preprocessing(sourceImgC4, modelWidth, modelHeight);
+    const input = preprocessed.input
+    const [padLeft, padRight, padTop, padBottom] = preprocessed.pad
     const tensor = new Tensor("float32", input.data32F, inputShape); // to ort.Tensor
-    const config = new Tensor(
-        "float32",
-        new Float32Array([
-            topk, // topk per class
-            iouThreshold, // iou threshold
-            scoreThreshold, // score threshold
-        ])
-    ); // nms config tensor
     const { output0 } = await session.net.run({ images: tensor }); // run session and get output layer
-
-
-
-    const { selected } = await session.nms.run({ detection: output0, config: config }); // perform nms and filter boxes
-    const { selected_boxes_xywh, selected_class_scores, selected_class_ids } = await session.fullnms.run(
+    const { selected_boxes_xywh, selected_class_scores, selected_class_ids } = await session.nms.run(
         {
             output0: output0,
-            int32_max_output_boxes_per_class: new Tensor("int32", new Int32Array([100])),
-            iou_threshold: new Tensor("float32", new Float32Array([0.7])),
-            score_threshold: new Tensor("float32", new Float32Array([0.25])),
+            int32_max_output_boxes_per_class: new Tensor("int32", new Int32Array([topk])),
+            iou_threshold: new Tensor("float32", new Float32Array([iouThreshold])),
+            score_threshold: new Tensor("float32", new Float32Array([scoreThreshold])),
         }
     )
-    console.log(selected_class_ids)
 
-    const boxes = [];
-    // looping through output
-    for (let idx = 0; idx < selected.dims[1]; idx++) {
-        const data = selected.data.slice(idx * selected.dims[2], (idx + 1) * selected.dims[2]); // get rows
-        const box = data.slice(0, 4);
-        const scores = data.slice(4); // classes probability scores
-        const score = Math.max(...scores); // maximum probability scores
-        const label = scores.indexOf(score); // class id of maximum probability scores
+    const boxes = []
+    const numBoxes = selected_boxes_xywh.dims[0]
+    for (let idx = 0; idx < numBoxes; idx++) {
+        const boxStartIdx = idx * 4
+        const box_xywh = selected_boxes_xywh.data.subarray(boxStartIdx, boxStartIdx + 4)
+        const label = selected_class_ids.data[idx]
+        const conf = selected_class_scores.data[idx]
 
-        box[0] = box[0] - padLeft
-        box[1] = box[1] - padTop
+        box_xywh[0] -= padLeft
+        box_xywh[1] -= padTop
+        const w = modelWidth - (padLeft + padRight)
+        const h = modelHeight - (padTop + padBottom)
 
-        let img_w = modelWidth - padLeft * 2
-        let img_h = modelHeight - padTop * 2
-
-        let origW = img_w / ratioX
-        let origH = img_h / ratioY
-
-        let [x, y, w, h] = [box[0] / ratioX / origW, box[1] / ratioY / origH, box[2] / ratioX / origW, box[3] / ratioY / origH]
+        // normalize
+        box_xywh[0] /= w
+        box_xywh[1] /= h
+        box_xywh[2] /= w
+        box_xywh[3] /= h
 
         boxes.push({
             label: label,
-            probability: score,
-            boundingNormalized: [x, y, w, h], // upscale box
-        }); // update boxes to draw later
+            conf: conf,
+            box_xywhn: box_xywh,
+        })
     }
-
-    renderBoxes(canvas, boxes, padLeft, padTop); // Draw boxes
+    renderBoxes(canvas, boxes); // Draw boxes
     input.delete(); // delete unused Mat
 };
 
@@ -87,8 +74,8 @@ export const detectImage = async (
  * @return preprocessed image and configs
  */
 
-const preprocessing = (source, W, H) => {
-    const sourceImgC4 = cv.imread(source); // read from img tag
+const preprocessing = (sourceImgC4, W, H) => {
+    // const sourceImgC4 = cv.imread(source); // read from img tag
     const sourceImg = new cv.Mat(sourceImgC4.rows, sourceImgC4.cols, cv.CV_8UC3); // new image matrix
     cv.cvtColor(sourceImgC4, sourceImg, cv.COLOR_RGBA2RGB); // RGBA to BGR
     const imgH = sourceImg.rows
@@ -107,9 +94,6 @@ const preprocessing = (source, W, H) => {
     let resizedImg = new cv.Mat(newImgH, newImgW, cv.CV_8UC3)
     let newSize = new cv.Size(newImgW, newImgH)
     cv.resize(sourceImg, resizedImg, newSize)
-
-    let ratioX = newImgW / imgW
-    let ratioY = newImgH / imgH
 
     let transformedImg = new cv.Mat(H, W, cv.CV_8UC3)
     let padX = W - newImgW
@@ -133,5 +117,8 @@ const preprocessing = (source, W, H) => {
     transformedImg.delete()
 
 
-    return [input, ratioX, ratioY, padLeft, padTop]
+    return {
+        input: input,
+        pad: [padLeft, padRight, padTop, padBottom]
+    }
 };

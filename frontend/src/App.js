@@ -5,7 +5,7 @@ import Loader from "./components/Loader";
 import { detectImage } from "./utils/detect";
 import { download } from "./utils/download";
 import "./style/App.css";
-import { detection_model_file, nms_model_file, full_nms_model_file } from "./assets";
+import { detection_model_file, nms_model_file } from "./assets";
 
 const App = () => {
   const [session, setSession] = useState(null);
@@ -31,9 +31,6 @@ const App = () => {
     const arrBufNMS = await download(nms_model_file, ["Loading NMS model", setLoading]);
     const nms = await InferenceSession.create(arrBufNMS);
 
-    const arrBufFullNMS = await download(full_nms_model_file, ["Loading Full NMS model", setLoading]);
-    const fullnms = await InferenceSession.create(arrBufFullNMS);
-
     // warmup main model
     setLoading({ text: "Warming up model...", progress: null });
     const tensor = new Tensor(
@@ -46,7 +43,6 @@ const App = () => {
     setSession({
       net: model,
       nms: nms,
-      fullnms: fullnms
     });
     setLoading(null);
   };
