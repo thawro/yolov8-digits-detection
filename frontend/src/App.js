@@ -27,24 +27,12 @@ const App = () => {
     // create session
     const arrBufNet = await download(detection_model_file, ["Loading Detection model", setLoading]);
     const model = await InferenceSession.create(arrBufNet);
-    console.log("Model loaded")
 
     const arrBufNMS = await download(nms_model_file, ["Loading NMS model", setLoading]);
-    console.log(arrBufNMS)
     const nms = await InferenceSession.create(arrBufNMS);
-    console.log("nms loaded")
 
     const arrBufFullNMS = await download(full_nms_model_file, ["Loading Full NMS model", setLoading]);
-    console.log(arrBufFullNMS)
-    try {
-      const fullnms = await InferenceSession.create(arrBufFullNMS);
-    } catch (error) {
-      console.log("ERRUR ERRUR", error)
-      console.error(error);
-
-    }
-
-    console.log("full NMS loaded")
+    const fullnms = await InferenceSession.create(arrBufFullNMS);
 
     // warmup main model
     setLoading({ text: "Warming up model...", progress: null });
@@ -58,7 +46,7 @@ const App = () => {
     setSession({
       net: model,
       nms: nms,
-      // fullnms: fullnms
+      fullnms: fullnms
     });
     setLoading(null);
   };

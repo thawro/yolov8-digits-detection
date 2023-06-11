@@ -38,15 +38,15 @@ export const detectImage = async (
 
 
     const { selected } = await session.nms.run({ detection: output0, config: config }); // perform nms and filter boxes
-    // const { selected_boxes_xywh, selected_class_scores, selected_class_ids } = await session.fullnms.run(
-    //     {
-    //         output0: output0,
-    //         max_output_boxes_per_class: new Tensor("int64", new Int32Array([100])),
-    //         iou_threshold: new Tensor("float32", new Float32Array([0.7])),
-    //         score_threshold: new Tensor("float32", new Float32Array([0.7])),
-    //     }
-    // )
-    // console.log(selected_class_ids)
+    const { selected_boxes_xywh, selected_class_scores, selected_class_ids } = await session.fullnms.run(
+        {
+            output0: output0,
+            int32_max_output_boxes_per_class: new Tensor("int32", new Int32Array([100])),
+            iou_threshold: new Tensor("float32", new Float32Array([0.7])),
+            score_threshold: new Tensor("float32", new Float32Array([0.25])),
+        }
+    )
+    console.log(selected_class_ids)
 
     const boxes = [];
     // looping through output
