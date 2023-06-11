@@ -5,7 +5,7 @@ import Loader from "./components/Loader";
 import { detectImage } from "./utils/detect";
 import { download } from "./utils/download";
 import "./style/App.css";
-import { detection_model_file, nms_model_file } from "./assets";
+import { detection_model_file, nms_model_file, full_nms_model_file } from "./assets";
 
 const App = () => {
   const [session, setSession] = useState(null);
@@ -27,8 +27,24 @@ const App = () => {
     // create session
     const arrBufNet = await download(detection_model_file, ["Loading Detection model", setLoading]);
     const model = await InferenceSession.create(arrBufNet);
+    console.log("Model loaded")
+
     const arrBufNMS = await download(nms_model_file, ["Loading NMS model", setLoading]);
+    console.log(arrBufNMS)
     const nms = await InferenceSession.create(arrBufNMS);
+    console.log("nms loaded")
+
+    const arrBufFullNMS = await download(full_nms_model_file, ["Loading Full NMS model", setLoading]);
+    console.log(arrBufFullNMS)
+    try {
+      const fullnms = await InferenceSession.create(arrBufFullNMS);
+    } catch (error) {
+      console.log("ERRUR ERRUR", error)
+      console.error(error);
+
+    }
+
+    console.log("full NMS loaded")
 
     // warmup main model
     setLoading({ text: "Warming up model...", progress: null });
@@ -39,7 +55,11 @@ const App = () => {
     );
     await model.run({ images: tensor });
 
-    setSession({ net: model, nms: nms });
+    setSession({
+      net: model,
+      nms: nms,
+      // fullnms: fullnms
+    });
     setLoading(null);
   };
 

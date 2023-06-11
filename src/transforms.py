@@ -32,8 +32,6 @@ def resize_pad(image: np.ndarray, h=640, w=640, fill_value=114):
     resized_img = cv2.resize(image, (new_img_w, new_img_h))
 
     # width, height ratios
-    ratio_x = new_img_w / img_w
-    ratio_y = new_img_h / img_h
     padded_img = np.ones((h, w, img_c)) * fill_value
     left = (w - new_img_w) // 2
     bottom = (h - new_img_h) // 2
@@ -41,4 +39,4 @@ def resize_pad(image: np.ndarray, h=640, w=640, fill_value=114):
     padded_img[bottom : bottom + new_img_h, left : left + new_img_w] = resized_img
     pad_x = (w - new_img_w) // 2
     pad_y = (h - new_img_h) // 2
-    return padded_img, (ratio_x, ratio_y), (pad_x, pad_y)
+    return padded_img, (pad_x, pad_y)

@@ -4,14 +4,14 @@ from src.visualization import plot_yolo_labels, ID2NAME
 
 import matplotlib.pyplot as plt
 import numpy as np
-import onnx
 
 
 class Boxes:
-    def __init__(self, xywh, cls, conf, w, h):
-        self.xywh = xywh
-        self.w = w
+    def __init__(self, xywhn, cls, conf, h, w):
+        self.xywhn = xywhn
         self.h = h
+        self.w = w
+
         self.cls = cls
         self.conf = conf
 
@@ -20,17 +20,16 @@ class Boxes:
         return xywh2xyxy(self.xywhn)
 
     @property
-    def xywhn(self):
-        bbox_divider = np.array([self.w, self.h, self.w, self.h])
-        xywhn = np.divide(self.xywh, bbox_divider)
-        return xywhn
+    def xywh(self):
+        bbox_multiplier = np.array([self.w, self.h, self.w, self.h])
+        return np.multiply(self.xywhn, bbox_multiplier)
 
     @property
     def xyxy(self):
         return xywh2xyxy(self.xywh)
 
     def filter_by_idxs(self, idxs):
-        self.xywh = self.xywh[idxs]
+        self.xywhn = self.xywhn[idxs]
         self.cls = self.cls[idxs]
         self.conf = self.conf[idxs]
 
@@ -39,13 +38,13 @@ class DetectionResults:
     def __init__(
         self,
         orig_image: np.ndarray,
-        xywh: np.ndarray | None = None,
+        xywhn: np.ndarray | None = None,
         cls: np.ndarray | None = None,
         conf: np.ndarray | None = None,
     ):
         self.orig_image = orig_image
-        w, h = orig_image.shape[:2]
-        self.boxes = Boxes(xywh, cls, conf, w, h)
+        h, w = orig_image.shape[:2]
+        self.boxes = Boxes(xywhn, cls, conf, h, w)
 
     @property
     def is_empty(self):
@@ -60,7 +59,7 @@ class DetectionResults:
         return self.boxes.conf.tolist()
 
     def non_maximum_supression(self, iou_threshold):
-        idxs = non_maximum_supression(self.boxes.xyxy, self.boxes.conf, iou_threshold)
+        idxs = non_maximum_supression(self.boxes.xyxyn, self.boxes.conf, iou_threshold)
         self.boxes.filter_by_idxs(idxs)
 
     def visualize(self, plot=True):

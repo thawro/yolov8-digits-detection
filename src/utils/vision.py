@@ -1,7 +1,7 @@
 import numpy as np
 
 
-def non_maximum_supression(boxes: np.ndarray, conf: np.ndarray, iou_threshold: float):
+def non_maximum_supression(boxes_xyxy: np.ndarray, conf: np.ndarray, iou_threshold: float):
     # Sort by score
     sorted_indices = np.argsort(conf)[::-1]
 
@@ -12,7 +12,7 @@ def non_maximum_supression(boxes: np.ndarray, conf: np.ndarray, iou_threshold: f
         keep_boxes.append(box_id)
 
         # Compute IoU of the picked box with the rest
-        ious = calculate_iou(boxes[box_id, :], boxes[sorted_indices[1:], :])
+        ious = calculate_iou(boxes_xyxy[box_id, :], boxes_xyxy[sorted_indices[1:], :])
 
         # Remove boxes with IoU over the threshold
         keep_indices = np.where(ious <= iou_threshold)[0]
@@ -23,16 +23,16 @@ def non_maximum_supression(boxes: np.ndarray, conf: np.ndarray, iou_threshold: f
     return keep_boxes
 
 
-def calculate_iou(box: np.ndarray, boxes: np.ndarray):
+def calculate_iou(box_xyxy: np.ndarray, boxes_xyxy: np.ndarray):
     # Compute xmin, ymin, xmax, ymax for both boxes
-    xmin = np.maximum(box[0], boxes[:, 0])
-    ymin = np.maximum(box[1], boxes[:, 1])
-    xmax = np.minimum(box[2], boxes[:, 2])
-    ymax = np.minimum(box[3], boxes[:, 3])
+    xmin = np.maximum(box_xyxy[0], boxes_xyxy[:, 0])
+    ymin = np.maximum(box_xyxy[1], boxes_xyxy[:, 1])
+    xmax = np.minimum(box_xyxy[2], boxes_xyxy[:, 2])
+    ymax = np.minimum(box_xyxy[3], boxes_xyxy[:, 3])
 
     intersection_area = np.maximum(0, xmax - xmin) * np.maximum(0, ymax - ymin)
 
-    box_area = (box[2] - box[0]) * (box[3] - box[1])
-    boxes_area = (boxes[:, 2] - boxes[:, 0]) * (boxes[:, 3] - boxes[:, 1])
+    box_area = (box_xyxy[2] - box_xyxy[0]) * (box_xyxy[3] - box_xyxy[1])
+    boxes_area = (boxes_xyxy[:, 2] - boxes_xyxy[:, 0]) * (boxes_xyxy[:, 3] - boxes_xyxy[:, 1])
     union_area = box_area + boxes_area - intersection_area
     return intersection_area / union_area

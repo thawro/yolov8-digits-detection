@@ -33,23 +33,21 @@ class YoloOnnxModel(OnnxModel):
 
     def prepare_input(self, image):
         image = image[..., : self.input_c]
-        image, ratio, pad = resize_pad(image, self.input_w, self.input_h)
+        image, pad = resize_pad(image, self.input_w, self.input_h)
         image = image / 255.0
         image = image.transpose(2, 0, 1)
         input_tensor = np.expand_dims(image, 0).astype(np.float32)
-        return input_tensor, ratio, pad
+        return input_tensor, pad
 
     def detect_objects(self, image: np.ndarray, iou_threshold, conf_threshold):
         input_image = np.copy(image)
-        input_tensor, ratio, pad = self.prepare_input(input_image)
+        input_tensor, pad = self.prepare_input(input_image)
         outputs = self.inference(input_tensor)
-        results = self.process_output(
-            input_image, outputs, ratio, pad, iou_threshold, conf_threshold
-        )
+        results = self.process_output(input_image, outputs, pad, iou_threshold, conf_threshold)
         return results
 
     def process_output(
-        self, input_image, outputs, ratio, pad, iou_threshold, conf_threshold
+        self, input_image, outputs, pad, iou_threshold, conf_threshold
     ) -> DetectionResults:
         predictions = np.squeeze(outputs[0]).T
 
@@ -66,12 +64,15 @@ class YoloOnnxModel(OnnxModel):
         class_ids = np.argmax(predictions[:, 4:], axis=1)
 
         pad_x, pad_y = pad
-        ratio_x, ratio_y = ratio
         boxes_xywh = predictions[:, :4]
         boxes_xywh[:, 0] -= pad_x
         boxes_xywh[:, 1] -= pad_y
-        boxes_xywh = np.divide(boxes_xywh, np.array([ratio_x, ratio_y, ratio_x, ratio_y]))
-        results = DetectionResults(input_image, boxes_xywh, class_ids, conf)
+        w = self.input_w - pad_x * 2
+        h = self.input_h - pad_y * 2
+
+        boxes_xywhn = np.divide(boxes_xywh, np.array([w, h, w, h]))
+
+        results = DetectionResults(input_image, boxes_xywhn, class_ids, conf)
 
         results.non_maximum_supression(iou_threshold)
         return results
