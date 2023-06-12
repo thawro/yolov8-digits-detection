@@ -577,6 +577,16 @@ files = [
 ]
 
 [[package]]
+name = "colored"
+version = "1.4.4"
+description = "Simple library for color and formatting to terminal"
+optional = false
+python-versions = "*"
+files = [
+    {file = "colored-1.4.4.tar.gz", hash = "sha256:04ff4d4dd514274fe3b99a21bb52fb96f2688c01e93fba7bef37221e7cb56ce0"},
+]
+
+[[package]]
 name = "coloredlogs"
 version = "15.0.1"
 description = "Colored terminal output for Python's logging module"
@@ -4286,4 +4296,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "d37d431b47e3ca479d7e5a436092505f00bc89482876c2ea234a50867953f421"
+content-hash = "afc4bb89ee29eb765714e2afed5ae98ee5c8941a313af5c8a13c88e7db00ba2d"

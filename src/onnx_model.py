@@ -33,7 +33,7 @@ class YoloOnnxModel(OnnxModel):
 
     def prepare_input(self, image):
         image = image[..., : self.input_c]
-        image, pad = resize_pad(image, self.input_w, self.input_h)
+        image, pad = resize_pad(image, self.input_h, self.input_w)
         image = image / 255.0
         image = image.transpose(2, 0, 1)
         input_tensor = np.expand_dims(image, 0).astype(np.float32)

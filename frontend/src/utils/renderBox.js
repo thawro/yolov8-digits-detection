@@ -29,6 +29,7 @@ export const renderBoxes = (canvas, boxes) => {
         let w = wn * W
         let h = hn * H
 
+        // xcenter,ycenter -> xmin,ymin
         x = x - w / 2
         y = y - h / 2
 

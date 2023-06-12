@@ -31,6 +31,7 @@ supervision = "^0.8.0"
 albumentations = "^1.3.0"
 gradio = "^3.30.0"
 onnx = "1.13.1"
+colored = "^1.4.4"
 
 
 [tool.poetry.group.dev.dependencies]
