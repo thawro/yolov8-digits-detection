@@ -5,7 +5,7 @@ import Loader from "./components/Loader";
 import { detectImage } from "./utils/detect";
 import { download } from "./utils/download";
 import "./style/App.css";
-import { detection_model_file, nms_model_file } from "./assets";
+import { preprocessing_onnx, detection_onnx, nms_onnx } from "./assets";
 
 const App = () => {
   const [session, setSession] = useState(null);
@@ -25,11 +25,14 @@ const App = () => {
   // wait until opencv.js initialized
   cv["onRuntimeInitialized"] = async () => {
     // create session
-    const arrBufNet = await download(detection_model_file, ["Loading Detection model", setLoading]);
-    const model = await InferenceSession.create(arrBufNet);
+    const preprocessingBuffer = await download(preprocessing_onnx, ["Loading Preprocessing", setLoading]);
+    const preprocessing = await InferenceSession.create(preprocessingBuffer);
 
-    const arrBufNMS = await download(nms_model_file, ["Loading NMS model", setLoading]);
-    const nms = await InferenceSession.create(arrBufNMS);
+    const modelBuffer = await download(detection_onnx, ["Loading YOLOv8 model", setLoading]);
+    const model = await InferenceSession.create(modelBuffer);
+
+    const nmsBuffer = await download(nms_onnx, ["Loading NMS model", setLoading]);
+    const nms = await InferenceSession.create(nmsBuffer);
 
     // warmup main model
     setLoading({ text: "Warming up model...", progress: null });
@@ -41,6 +44,7 @@ const App = () => {
     await model.run({ images: tensor });
 
     setSession({
+      preprocessing: preprocessing,
       net: model,
       nms: nms,
     });

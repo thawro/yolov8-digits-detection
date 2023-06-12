@@ -23,11 +23,30 @@ export const detectImage = async (
 ) => {
     const [modelWidth, modelHeight] = inputShape.slice(2);
     const sourceImgC4 = cv.imread(image); // read from img tag
-    const preprocessed = preprocessing(sourceImgC4, modelWidth, modelHeight);
-    const input = preprocessed.input
-    const [padLeft, padRight, padTop, padBottom] = preprocessed.pad
-    const tensor = new Tensor("float32", input.data32F, inputShape); // to ort.Tensor
-    const { output0 } = await session.net.run({ images: tensor }); // run session and get output layer
+
+    // const { input, padding } = preprocessing(sourceImgC4, modelWidth, modelHeight);
+    // const [padTop, padLeft, padBottom, padRight,] = padding
+
+    console.time("preprocessing")
+    const imageShape = [sourceImgC4.rows, sourceImgC4.cols, sourceImgC4.channels()]
+    const inp_image = new Tensor("uint8", sourceImgC4.data, imageShape); // to ort.Tensor
+    const { preprocessed_img, padding_tlbr } = await session.preprocessing.run(
+        {
+            image: inp_image,
+            input_h: new Tensor("int32", new Int32Array([modelHeight])),
+            input_w: new Tensor("int32", new Int32Array([modelWidth])),
+            fill_value: new Tensor("uint8", new Uint8Array([114])),
+        }
+    )
+    const [padTop, padLeft, padBottom, padRight,] = padding_tlbr.data
+    const tensor_img = new Tensor("float32", preprocessed_img.data, inputShape); // to ort.Tensor
+    console.timeEnd("preprocessing")
+
+    console.time("detection")
+    const { output0 } = await session.net.run({ images: tensor_img }); // run session and get output layer
+    console.timeEnd("detection")
+
+    console.time("nms")
     const { selected_boxes_xywh, selected_class_scores, selected_class_ids } = await session.nms.run(
         {
             output0: output0,
@@ -36,7 +55,11 @@ export const detectImage = async (
             score_threshold: new Tensor("float32", new Float32Array([scoreThreshold])),
         }
     )
+    console.timeEnd("nms")
 
+
+    console.time("rendering")
+    // TODO: make onnx file for that
     const boxes = []
     const numBoxes = selected_boxes_xywh.dims[0]
     for (let idx = 0; idx < numBoxes; idx++) {
@@ -63,7 +86,8 @@ export const detectImage = async (
         })
     }
     renderBoxes(canvas, boxes); // Draw boxes
-    input.delete(); // delete unused Mat
+    console.timeEnd("rendering")
+    sourceImgC4.delete()
 };
 
 /**
@@ -113,12 +137,10 @@ const preprocessing = (sourceImgC4, W, H) => {
         1 / 255.0, // normalize
     ); // preprocessing image matrix
     resizedImg.delete()
-    sourceImgC4.delete()
     transformedImg.delete()
-
 
     return {
         input: input,
-        pad: [padLeft, padRight, padTop, padBottom]
+        padding: [padTop, padLeft, padBottom, padRight]
     }
 };

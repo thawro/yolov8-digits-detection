@@ -1,7 +1,5 @@
-import detection_model_file from './detection_model.onnx'
-import nms_model_file from './nms.onnx'
+import preprocessing_onnx from './onnx/preprocessing.onnx'
+import detection_onnx from './onnx/detection_model.onnx'
+import nms_onnx from './onnx/nms.onnx'
 
-
-
-
-export { detection_model_file, nms_model_file }
+export { preprocessing_onnx, detection_onnx, nms_onnx }

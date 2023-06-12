@@ -66,8 +66,8 @@ def create_onnx_NMS(filepath: str = "nms.onnx", opset: int = 18):
         outputs=[class_scores_transposed],
     )
 
-    int32_max_output_boxes_per_class = gs.Variable(
-        name="int32_max_output_boxes_per_class", dtype=np.int32, shape=(1,)
+    max_output_boxes_per_class = gs.Variable(
+        name="max_output_boxes_per_class", dtype=np.int32, shape=(1,)
     )
     int64_max_output_boxes_per_class = gs.Variable(
         name="int64_max_output_boxes_per_class", dtype=np.int64, shape=(1,)
@@ -75,7 +75,7 @@ def create_onnx_NMS(filepath: str = "nms.onnx", opset: int = 18):
     node_cast_int32_to_int64 = gs.Node(
         op="Cast",
         attrs={"to": np.int64},
-        inputs=[int32_max_output_boxes_per_class],
+        inputs=[max_output_boxes_per_class],
         outputs=[int64_max_output_boxes_per_class],
     )
 
@@ -182,7 +182,7 @@ def create_onnx_NMS(filepath: str = "nms.onnx", opset: int = 18):
             node_squeezed_class_ids,
             node_selected_class_ids,
         ],
-        inputs=[output0, int32_max_output_boxes_per_class, iou_threshold, score_threshold],
+        inputs=[output0, max_output_boxes_per_class, iou_threshold, score_threshold],
         outputs=[selected_boxes_xywh, selected_class_scores, selected_class_ids],
         opset=opset,
     )

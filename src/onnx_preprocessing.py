@@ -2,218 +2,239 @@ import onnx_graphsurgeon as gs
 import numpy as np
 import onnx
 
+INT32 = np.int32
+INT64 = np.int64
+UINT8 = np.uint8
+FLOAT32 = np.float32
+BOOL = np.bool_
+STR = np.str_
+
 
 def _const(name, value, dtype):
     return gs.Constant(name=name, values=np.array([value], dtype=dtype))
 
 
-def parse_outs(outs, dtypes, names):
-    for i in range(len(outs)):
-        outs[i].dtype = dtypes[i]
-        outs[i].name = names[i]
-    return outs
+def parse_out(out, dtype, name, shape):
+    out.dtype = dtype
+    out.name = name
+    out.shape = shape
+    return out
 
 
 @gs.Graph.register()
 def slice_tensor(
-    self, input_image, starts: int = 0, ends: int = 3, axes: int = 2, outputs=["slice"]
+    self, tensor, starts: int = 0, ends: int = 3, axes: int = 2, name="slice", shape=None
 ):
-    outs = self.layer(
+    out = self.layer(
         op="Slice",
         inputs=[
-            input_image,
-            _const("starts", starts, np.int64),
-            _const("ends", ends, np.int64),
-            _const("axes", axes, np.int64),
+            tensor,
+            _const("starts", starts, INT64),
+            _const("ends", ends, INT64),
+            _const("axes", axes, INT64),
         ],
-        outputs=outputs,
-    )
-    return parse_outs(outs, [input_image.dtype], outputs)
+        outputs=[name],
+    )[0]
+    return parse_out(out, tensor.dtype, name, shape)
 
 
 @gs.Graph.register()
-def shape(self, rgb_image, outputs=["shape"]):
-    outs = self.layer(op="Shape", inputs=[rgb_image], outputs=outputs)
-    return parse_outs(outs, [np.int64], outputs)
+def get_shape(self, rgb_image, name="shape", shape=None):
+    out = self.layer(op="Shape", inputs=[rgb_image], outputs=[name])[0]
+    return parse_out(out, INT64, name, shape)
 
 
 @gs.Graph.register()
-def div(self, a, b, outputs=["ratio"]):
-    outs = self.layer(op="Div", inputs=[a, b], outputs=outputs)
-    return parse_outs(outs, [a.dtype], outputs)
+def div(self, a, b, name="ratio", shape=None):
+    out = self.layer(op="Div", inputs=[a, b], outputs=[name])[0]
+    return parse_out(out, a.dtype, name, shape)
 
 
 @gs.Graph.register()
-def sub(self, a, b, outputs=["diff"]):
-    outs = self.layer(op="Sub", inputs=[a, b], outputs=outputs)
-    return parse_outs(outs, [a.dtype], outputs)
+def sub(self, a, b, name="diff", shape=None):
+    out = self.layer(op="Sub", inputs=[a, b], outputs=[name])[0]
+    return parse_out(out, a.dtype, name, shape)
 
 
 @gs.Graph.register()
-def get_item(self, tensor, axis, idx, outputs=["item"]):
-    outs = self.layer(
+def get_item(self, tensor, axis, idx, name="item", shape=None):
+    out = self.layer(
         op="Gather",
         attrs={"axis": axis},
-        inputs=[tensor, _const(f"index_{idx}", idx, np.int64)],
-        outputs=outputs,
-    )
-    return parse_outs(outs, [tensor.dtype], outputs)
+        inputs=[tensor, _const(f"index_{idx}", idx, INT64)],
+        outputs=[name],
+    )[0]
+    return parse_out(out, tensor.dtype, name, shape)
 
 
 @gs.Graph.register()
-def cast(self, a, dtype, outputs=["casted"]):
-    outs = self.layer(op="Cast", attrs={"to": dtype}, inputs=[a], outputs=outputs)
-    return parse_outs(outs, [dtype], outputs)
+def cast(self, a, dtype, name="casted", shape=None):
+    out = self.layer(op="Cast", attrs={"to": dtype}, inputs=[a], outputs=[name])[0]
+    return parse_out(out, dtype, name, shape)
 
 
 @gs.Graph.register()
-def is_greater(self, a, b, outputs=["is_greater"]):
-    outs = self.layer(op="Greater", inputs=[a, b], outputs=outputs)
-    return parse_outs(outs, [np.bool_], outputs)
+def is_greater(self, a, b, name="is_greater", shape=None):
+    out = self.layer(op="Greater", inputs=[a, b], outputs=[name])[0]
+    return parse_out(out, BOOL, name, shape)
 
 
+# TODO
 @gs.Graph.register()
-def if_statement(self, cond, then_branch, else_branch, dtypes=[np.float32], outputs=["if_out"]):
+def if_statement(
+    self, cond, then_branch, else_branch, dtypes=[FLOAT32], names=["if_out"], shapes=[None]
+):
     outs = self.layer(
         op="If",
         attrs={"then_branch": then_branch, "else_branch": else_branch},
         inputs=[cond],
-        outputs=outputs,
+        outputs=names,
     )
-    return parse_outs(outs, dtypes, outputs)
+    return [parse_out(outs[i], dtypes[i], names[i], shapes[i]) for i in range(len(outs))]
 
 
 @gs.Graph.register()
-def identity(self, a, outputs=["copy"]):
-    outs = self.layer(op="Identity", inputs=[a], outputs=outputs)
-    return parse_outs(outs, [a.dtype], outputs)
+def identity(self, a, name="copy", shape=None):
+    out = self.layer(op="Identity", inputs=[a], outputs=[name])[0]
+    return parse_out(out, a.dtype, name, shape)
 
 
 @gs.Graph.register()
-def constant(self, a, outputs=["const"]):
-    outs = self.layer(op="Constant", attrs={"value": a}, outputs=outputs)
-    return parse_outs(outs, [a.dtype], outputs)
+def constant(self, a, name="const", shape=None):
+    out = self.layer(op="Constant", attrs={"value": a}, outputs=[name])[0]
+    return parse_out(out, a.dtype, name, shape)
 
 
 @gs.Graph.register()
-def concat(self, inputs, axis: int = 0, outputs=["concat_results"]):
-    outs = self.layer(op="Concat", attrs={"axis": axis}, inputs=inputs, outputs=outputs)
-    return parse_outs(outs, [inputs[0].dtype], outputs)
+def concat(self, inputs, axis: int = 0, name="concat_results", shape=None):
+    out = self.layer(op="Concat", attrs={"axis": axis}, inputs=inputs, outputs=[name])[0]
+    return parse_out(out, inputs[0].dtype, name, shape)
 
 
 @gs.Graph.register()
-def resize(self, image, sizes, outputs=["resized"]):
-    outs = self.layer(
+def resize(self, image, sizes, name="resized", shape=None):
+    out = self.layer(
         op="Resize",
         attrs={"mode": "linear", "axes": [0, 1]},
-        inputs=[image, _const("", "", np.str_), _const("", "", np.str_), sizes],  # roi  # scales
-        outputs=outputs,
-    )
-    return parse_outs(outs, [image.dtype], outputs)
+        inputs=[image, _const("", "", STR), _const("", "", STR), sizes],
+        outputs=[name],
+    )[0]
+    return parse_out(out, image.dtype, name, shape)
 
 
 @gs.Graph.register()
-def pad_image(self, image, pads, constant_value: int = 114, outputs=["padded"]):
+def pad_image(self, image, pads, fill_value, name="padded", shape=None):
     # pads = [pad_top, pad_left, pad_bottom, pad_right]
-    outs = self.layer(
+    out = self.layer(
         op="Pad",
         attrs={"mode": "constant"},
         inputs=[
             image,  # data
             pads,  # pads
-            _const("constant_value", constant_value, np.uint8),  # constant_value
-            gs.Constant("pad_axes", np.array([0, 1], dtype=np.int64)),  # axes
+            fill_value,  # constant_value
+            gs.Constant("pad_axes", np.array([0, 1], dtype=INT64)),  # axes
         ],
-        outputs=outputs,
-    )
-    return parse_outs(outs, [image.dtype], outputs)
+        outputs=[name],
+    )[0]
+    return parse_out(out, image.dtype, name, shape)
 
 
 @gs.Graph.register()
-def transpose(self, tensor, perm=[2, 0, 1], outputs=["transposed"]):
-    outs = self.layer(op="Transpose", attrs={"perm": perm}, inputs=[tensor], outputs=outputs)
-    return parse_outs(outs, [tensor.dtype], outputs)
+def transpose(self, tensor, perm=[2, 0, 1], name="transposed", shape=None):
+    out = self.layer(op="Transpose", attrs={"perm": perm}, inputs=[tensor], outputs=[name])[0]
+    return parse_out(out, tensor.dtype, name, shape)
 
 
 def create_onnx_preprocessing(filepath: str = "preprocessing.onnx", opset: int = 18):
     graph = gs.Graph(opset=opset)
 
-    input_h_int32 = gs.Variable(name="input_h_int32", dtype=np.int32, shape=(1,))
-    input_h = graph.cast(input_h_int32, dtype=np.int64, outputs=["input_h"])
-    input_h_float = graph.cast(*input_h, dtype=np.float32, outputs=["input_h_float"])
+    input_h = gs.Variable(name="input_h", dtype=INT32, shape=(1,))
+    input_w = gs.Variable(name="input_w", dtype=INT32, shape=(1,))
+    image = gs.Variable(name="image", dtype=UINT8, shape=("height", "width", "channels"))
+    fill_value = gs.Variable(name="fill_value", dtype=UINT8, shape=(1,))
 
-    input_w_int32 = gs.Variable(name="input_w_int32", dtype=np.int32, shape=(1,))
-    input_w = graph.cast(input_w_int32, dtype=np.int64, outputs=["input_w"])
-    input_w_float = graph.cast(*input_w, dtype=np.float32, outputs=["input_w_float"])
+    input_h_int64 = graph.cast(input_h, dtype=INT64, name="input_h_int64", shape=(1,))
+    input_w_int64 = graph.cast(input_w, dtype=INT64, name="input_w_int64", shape=(1,))
 
-    input_image = gs.Variable(
-        name="input_image", dtype=np.uint8, shape=("height", "width", "channels")
-    )
-    inputs = [input_image, input_h_int32, input_w_int32]
+    input_h_float = graph.cast(input_h, dtype=FLOAT32, name="input_h_float", shape=(1,))
+    input_w_float = graph.cast(input_w, dtype=FLOAT32, name="input_w_float", shape=(1,))
+
+    inputs = [image, input_h, input_w, fill_value]
     graph.inputs = inputs
 
-    rgb_image = graph.slice_tensor(input_image, outputs=["X"])
-    img_shape = graph.shape(*rgb_image)  # HWC
+    rgb_image = graph.slice_tensor(image, name="rgb_image", shape=("height", "width", 3))
+    img_shape = graph.get_shape(rgb_image)  # HW3
 
-    img_h_int = graph.get_item(*img_shape, axis=0, idx=0, outputs=["img_h_int"])
-    img_h = graph.cast(*img_h_int, dtype=np.float32, outputs=["img_h"])
+    img_h_int = graph.get_item(img_shape, axis=0, idx=0, name="img_h_int", shape=(1,))
+    img_h = graph.cast(img_h_int, dtype=FLOAT32, name="img_h", shape=(1,))
 
-    img_w_int = graph.get_item(*img_shape, axis=0, idx=1, outputs=["img_w_int"])
-    img_w = graph.cast(*img_w_int, dtype=np.float32, outputs=["img_w"])
+    img_w_int = graph.get_item(img_shape, axis=0, idx=1, name="img_w_int", shape=(1,))
+    img_w = graph.cast(img_w_int, dtype=FLOAT32, name="img_w", shape=(1,))
 
-    aspect_ratio = graph.div(*img_w, *img_h, outputs=["aspect_ratio"])
+    aspect_ratio = graph.div(img_w, img_h, name="aspect_ratio", shape=(1,))
 
-    is_greater = graph.is_greater(
-        *aspect_ratio, _const("one", 1, np.float32), outputs=["is_greater"]
-    )
+    scalar_1 = _const("one", 1, FLOAT32)
+    is_greater = graph.is_greater(aspect_ratio, scalar_1, name="is_greater", shape=(1,))
 
     then_subgraph = gs.Graph(opset=opset)
-    then_img_h = then_subgraph.div(*input_w_float, *aspect_ratio, outputs=["then_img_h"])
-    then_img_w = then_subgraph.identity(*input_w_float, outputs=["then_img_w"])
-    then_subgraph.outputs = then_img_h + then_img_w
+    then_img_h = then_subgraph.div(input_w_float, aspect_ratio, name="then_img_h", shape=(1,))
+    then_img_w = then_subgraph.identity(input_w_float, name="then_img_w", shape=(1,))
+    then_subgraph.outputs = [then_img_h, then_img_w]
 
     else_subgraph = gs.Graph(opset=opset)
-    else_img_h = else_subgraph.identity(*input_h_float, outputs=["else_img_h"])
-    else_img_w = else_subgraph.div(*input_h_float, *aspect_ratio, outputs=["else_img_w"])
-    else_subgraph.outputs = else_img_h + else_img_w
+    else_img_h = else_subgraph.identity(input_h_float, name="else_img_h", shape=(1,))
+    else_img_w = else_subgraph.div(input_h_float, aspect_ratio, name="else_img_w", shape=(1,))
+    else_subgraph.outputs = [else_img_h, else_img_w]
 
     new_img_h_float, new_img_w_float = graph.if_statement(
-        *is_greater,
+        is_greater,
         then_subgraph,
         else_subgraph,
-        dtypes=[np.float32, np.float32],
-        outputs=["new_img_h_float", "new_img_w_float"],
+        dtypes=[FLOAT32, FLOAT32],
+        names=["new_img_h_float", "new_img_w_float"],
+        shapes=[(1,), (1,)],
     )
-    new_img_h = graph.cast(new_img_h_float, dtype=np.int64, outputs=["new_img_h"])
-    new_img_w = graph.cast(new_img_w_float, dtype=np.int64, outputs=["new_img_w"])
+    new_img_h = graph.cast(new_img_h_float, dtype=INT64, name="new_img_h", shape=(1,))
+    new_img_w = graph.cast(new_img_w_float, dtype=INT64, name="new_img_w", shape=(1,))
 
     hw_size_float = graph.concat(
-        [new_img_h_float, new_img_w_float], axis=0, outputs=["hw_size_float"]
+        [new_img_h_float, new_img_w_float], axis=0, name="hw_size_float", shape=(2,)
     )
-    sizes = graph.cast(*hw_size_float, dtype=np.int64, outputs=["sizes"])
+    sizes = graph.cast(hw_size_float, dtype=INT64, name="sizes", shape=(2,))
 
-    resized_img = graph.resize(*rgb_image, *sizes, outputs=["resized_img"])
+    resized_img = graph.resize(
+        rgb_image, sizes, name="resized_img", shape=("new_img_h", "new_img_w", 3)
+    )
 
-    scalar_2 = _const("scalar_2", 2, dtype=np.int64)
-    pad_x = graph.sub(*input_w, *new_img_w, outputs=["pad_x"])
-    pad_left_float = graph.div(*pad_x, scalar_2, outputs=["pad_left_float"])
-    pad_left = graph.cast(*pad_left_float, np.int64, outputs=["pad_left"])
-    pad_right = graph.sub(*pad_x, *pad_left, outputs=["pad_right"])
+    scalar_2 = _const("scalar_2", 2, dtype=INT64)
+    pad_x = graph.sub(input_w_int64, new_img_w, name="pad_x", shape=(1,))
+    pad_left_float = graph.div(pad_x, scalar_2, name="pad_left_float", shape=(1,))
+    pad_left = graph.cast(pad_left_float, dtype=INT64, name="pad_left", shape=(1,))
+    pad_right = graph.sub(pad_x, pad_left, name="pad_right", shape=(1,))
 
-    pad_y = graph.sub(*input_h, *new_img_h, outputs=["pad_y"])
-    pad_top_float = graph.div(*pad_y, scalar_2, outputs=["pad_top_float"])
-    pad_top = graph.cast(*pad_top_float, np.int64, outputs=["pad_top"])
-    pad_bottom = graph.sub(*pad_y, *pad_top, outputs=["pad_bottom"])
+    pad_y = graph.sub(input_h_int64, new_img_h, name="pad_y", shape=(1,))
+    pad_top_float = graph.div(pad_y, scalar_2, name="pad_top_float", shape=(1,))
+    pad_top = graph.cast(pad_top_float, dtype=INT64, name="pad_top", shape=(1,))
+    pad_bottom = graph.sub(pad_y, pad_top, name="pad_bottom", shape=(1,))
 
-    padding = pad_top + pad_left + pad_bottom + pad_right
-    pads = graph.concat(padding, axis=0, outputs=["pads"])
-    padded_img = graph.pad_image(*resized_img, *pads, constant_value=114, outputs=["padded_img"])
+    padding = [pad_top, pad_left, pad_bottom, pad_right]
+    pads_int64 = graph.concat(padding, axis=0, name="padding_int64", shape=(4,))
 
-    float_img = graph.cast(*padded_img, np.float32, outputs=["float_img"])
-    scalar_255 = _const("scalar_255", 255, dtype=np.float32)
-    normalized_img = graph.div(*float_img, scalar_255, outputs=["normalized_img"])
+    padded_img = graph.pad_image(
+        resized_img, pads_int64, fill_value, name="padded_img", shape=("input_h", "input_w", 3)
+    )
 
-    transposed_img = graph.transpose(*normalized_img, perm=[2, 0, 1], outputs=["preprocessed_img"])
+    float_img = graph.cast(
+        padded_img, dtype=FLOAT32, name="float_img", shape=("input_h", "input_w", 3)
+    )
+    scalar_255 = _const("scalar_255", 255, dtype=FLOAT32)
+    normalized_img = graph.div(
+        float_img, scalar_255, name="normalized_img", shape=("input_h", "input_w", 3)
+    )
 
-    graph.outputs = transposed_img
+    transposed_img = graph.transpose(
+        normalized_img, perm=[2, 0, 1], name="preprocessed_img", shape=("input_h", "input_w", 3)
+    )
+    pads = graph.cast(pads_int64, dtype=INT32, name="padding_tlbr", shape=(4,))
+    graph.outputs = [transposed_img, pads]
     onnx.save(gs.export_onnx(graph), filepath)
