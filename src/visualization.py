@@ -2,7 +2,6 @@ import matplotlib.pyplot as plt
 import cv2
 import numpy as np
 from src.ops import xywhn2xywh, xywh2xyxy
-from src.utils.utils import ID2NAME
 
 
 class Colors:
@@ -73,9 +72,29 @@ colors = Colors()  # create instance for 'from utils.plots import colors'
 
 
 def plot_bbox(
-    image, bbox_xyxy, class_name, confidence, color=(255, 0, 0), txt_color=(255, 255, 255), lw=None
+    image: np.ndarray,
+    bbox_xyxy: np.ndarray | list[int] | tuple[int, int, int, int],
+    class_name: str,
+    confidence: float,
+    color: tuple[int, int, int] = (255, 0, 0),
+    txt_color: tuple[int, int, int] = (255, 255, 255),
+    lw: float | None = None,
 ):
-    """Visualizes a single bounding box on the image"""
+    """Visualizes a single bounding box on the image
+
+    Args:
+        image (np.ndarray): Image to plot box on.
+        bbox_xyxy (np.ndarray | list[int] | tuple[int, int, int, int]):
+            xmin, ymin, xmax, ymax box coordinates.
+        class_name (str): Name of the object inside the box.
+        confidence (float): Confidence of the prediction.
+        color (tuple[int, int, int], optional): Rectangle color. Defaults to (255, 0, 0).
+        txt_color (tuple[int, int, int], optional): Text color. Defaults to (255, 255, 255).
+        lw (float | None, optional): Rectangle line width. Defaults to None.
+
+    Returns:
+        _type_: _description_
+    """
     lw = lw or max(round(sum(image.shape) / 2 * 0.003), 2)  # line width
     x_min, y_min, x_max, y_max = bbox_xyxy
     txt_label = f"{class_name} {confidence:.1f}"
@@ -99,19 +118,42 @@ def plot_bbox(
     return image
 
 
-def plot_yolo_labels(image, bboxes_xywhn, class_ids, confidences, id2name=ID2NAME, plot=False):
-    img = image.copy()
-    H, W, C = img.shape
+def plot_yolo_labels(
+    image: np.ndarray,
+    bboxes_xywhn: np.ndarray,
+    class_ids: np.ndarray,
+    confidences: np.ndarray,
+    id2name: dict[int, str] | None = None,
+    plot: bool = False,
+) -> np.ndarray:
+    """Plot predicted boxes and labels for an image.
+
+    Args:
+        image (np.ndarray): Image to plot box on.
+        bboxes_xywhn (np.ndarray): Predicted boxes in xywhn format.
+        class_ids (np.ndarray): Class id of each box.
+        confidences (np.ndarray): Prediction confidences of each box.
+        id2name (dict[int, str], optional): Mapping from class_id to class_name.
+            Defaults to None (ids are used as class names).
+        plot (bool, optional): Whether to plot labels using matplotlib. Defaults to False.
+
+    Returns:
+        np.ndarray: Image with ploted boxes
+    """
+    if id2name is None:
+        id2name = {class_id: str(class_id) for class_id in class_ids}
+    boxes_img = image.copy()
+    img_h, img_w, img_c = boxes_img.shape
     if not isinstance(bboxes_xywhn, np.ndarray):
         bboxes_xywhn = np.array(bboxes_xywhn)
-    bboxes_xywh = xywhn2xywh(bboxes_xywhn, W, H)
+    bboxes_xywh = xywhn2xywh(bboxes_xywhn, h=img_h, w=img_w)
     bboxes_xyxy = xywh2xyxy(bboxes_xywh).tolist()
     for bbox, class_id, conf in zip(bboxes_xyxy, class_ids, confidences):
         class_name = id2name[class_id]
         color = colors(class_id)
-        img = plot_bbox(img, bbox, class_name, conf, color)
+        boxes_img = plot_bbox(boxes_img, bbox, class_name, conf, color)
     if plot:
         plt.figure(figsize=(12, 12))
         plt.axis("off")
-        plt.imshow(img)
-    return img
+        plt.imshow(boxes_img)
+    return boxes_img

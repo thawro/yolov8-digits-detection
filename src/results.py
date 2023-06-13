@@ -1,5 +1,6 @@
 from src.ops import xywh2xyxy
-from src.visualization import plot_yolo_labels, ID2NAME
+from src.visualization import plot_yolo_labels
+from src.utils.utils import ID2NAME
 
 import matplotlib.pyplot as plt
 import numpy as np

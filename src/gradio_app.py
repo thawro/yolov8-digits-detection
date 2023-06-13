@@ -3,7 +3,7 @@ import glob
 import numpy as np
 from src.object_detection import OnnxObjectDetector
 
-model = OnnxObjectDetector(
+object_detector = OnnxObjectDetector(
     preprocessing_path="models/preprocessing.onnx",
     yolo_path="models/detection_model.onnx",
     nms_path="models/nms.onnx",
@@ -16,13 +16,15 @@ iou_threshold = 0.7
 score_threshold = 0.25
 
 
-def predict(image):
+def predict(image: np.ndarray):
     if len(image.shape) == 2:
         input_image = image[..., np.newaxis]
         input_image = np.repeat(input_image, 3, axis=2)
     else:
         input_image = image
-    results = model(input_image, iou_threshold=iou_threshold, score_threshold=score_threshold)
+    results = object_detector(
+        input_image, iou_threshold=iou_threshold, score_threshold=score_threshold
+    )
     bbox_img = results.visualize(plot=False)
     return bbox_img
 

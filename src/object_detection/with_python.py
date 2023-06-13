@@ -11,12 +11,10 @@ from src.object_detection.with_onnx import OnnxYolo
 
 class Preprocessing(BasePreprocessing):
     def __call__(self, image: np.ndarray, input_h: int, input_w: int, fill_value: int):
-        image = image[..., :3]
-        image, padding_tlbr = resize_pad(image, input_h, input_w, fill_value)
-        image = image / 255.0
-        image = image.transpose(2, 0, 1)
-        # input_tensor = np.expand_dims(image, 0).astype(np.float32)
-        return {"preprocessed_img": image, "padding_tlbr": padding_tlbr}
+        processed_image = image[..., :3]
+        processed_image, padding_tlbr = resize_pad(processed_image, input_h, input_w, fill_value)
+        processed_image = processed_image.transpose(2, 0, 1) / 255.0
+        return {"preprocessed_img": processed_image, "padding_tlbr": padding_tlbr}
 
 
 class NonMaxSupression(BaseNonMaxSupression):
