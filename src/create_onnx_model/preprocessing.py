@@ -233,8 +233,12 @@ def create_onnx_preprocessing(filepath: str = "preprocessing.onnx", opset: int =
     )
 
     transposed_img = graph.transpose(
-        normalized_img, perm=[2, 0, 1], name="preprocessed_img", shape=("input_h", "input_w", 3)
+        normalized_img, perm=[2, 0, 1], name="preprocessed_img", shape=(3, "input_h", "input_w")
     )
     pads = graph.cast(pads_int64, dtype=INT32, name="padding_tlbr", shape=(4,))
     graph.outputs = [transposed_img, pads]
     onnx.save(gs.export_onnx(graph), filepath)
+
+
+if __name__ == "__main__":
+    create_onnx_preprocessing(filepath="preprocessing.onnx", opset=18)

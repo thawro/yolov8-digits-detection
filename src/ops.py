@@ -1,4 +1,5 @@
 import numpy as np
+import cv2
 
 
 def non_maximum_supression(boxes_xyxy: np.ndarray, conf: np.ndarray, iou_threshold: float):
@@ -36,3 +37,46 @@ def calculate_iou(box_xyxy: np.ndarray, boxes_xyxy: np.ndarray):
     boxes_area = (boxes_xyxy[:, 2] - boxes_xyxy[:, 0]) * (boxes_xyxy[:, 3] - boxes_xyxy[:, 1])
     union_area = box_area + boxes_area - intersection_area
     return intersection_area / union_area
+
+
+def xywh2xyxy(boxes: np.ndarray):
+    x, y, w, h = boxes.T
+    x1 = x - w / 2
+    y1 = y - h / 2
+    x2 = x + w / 2
+    y2 = y + h / 2
+    return np.column_stack((x1, y1, x2, y2)).astype(boxes.dtype)
+
+
+def xywhn2xywh(boxes: np.ndarray, orig_w, orig_h):
+    xn, yn, wn, hn = boxes.T
+    x = xn * orig_w
+    y = yn * orig_h
+    w = wn * orig_w
+    h = hn * orig_h
+    return np.column_stack((x, y, w, h)).astype(np.int16)
+
+
+def resize_pad(image: np.ndarray, h=640, w=640, fill_value=114):
+    img_h, img_w, img_c = image.shape
+    aspect_ratio = img_w / img_h
+    if aspect_ratio > 1:
+        new_img_w = w
+        new_img_h = int(w / aspect_ratio)
+    else:
+        new_img_h = h
+        new_img_w = int(h / aspect_ratio)
+    resized_img = cv2.resize(image, (new_img_w, new_img_h))
+
+    # width, height ratios
+    padded_img = np.ones((h, w, img_c)) * fill_value
+    pad_x = w - new_img_w
+    pad_y = h - new_img_h
+
+    pad_top = pad_y // 2
+    pad_left = pad_x // 2
+    pad_bottom = pad_y - pad_top
+    pad_right = pad_x - pad_left
+
+    padded_img[pad_bottom : pad_bottom + new_img_h, pad_left : pad_left + new_img_w] = resized_img
+    return padded_img, (pad_top, pad_left, pad_bottom, pad_right)

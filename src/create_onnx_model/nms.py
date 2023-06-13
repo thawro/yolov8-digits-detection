@@ -187,3 +187,7 @@ def create_onnx_NMS(filepath: str = "nms.onnx", opset: int = 18):
         opset=opset,
     )
     onnx.save(gs.export_onnx(graph), filepath)
+
+
+if __name__ == "__main__":
+    create_onnx_NMS(filepath="nms.onnx", opset=18)

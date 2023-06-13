@@ -16,7 +16,7 @@ export const detectImage = async (
     image,
     canvas,
     session,
-    topk,
+    max_output_boxes_per_class,
     iouThreshold,
     scoreThreshold,
     inputShape
@@ -50,7 +50,7 @@ export const detectImage = async (
     const { selected_boxes_xywh, selected_class_scores, selected_class_ids } = await session.nms.run(
         {
             output0: output0,
-            int32_max_output_boxes_per_class: new Tensor("int32", new Int32Array([topk])),
+            max_output_boxes_per_class: new Tensor("int32", new Int32Array([max_output_boxes_per_class])),
             iou_threshold: new Tensor("float32", new Float32Array([iouThreshold])),
             score_threshold: new Tensor("float32", new Float32Array([scoreThreshold])),
         }

@@ -17,8 +17,11 @@ const App = () => {
 
 
   // Configs
-  const modelInputShape = [1, 3, 256, 256];
-  const topk = 100;
+  const modelInputH = 256
+  const modelInputW = 256
+  const modelInputC = 3
+  const modelInputShape = [1, modelInputC, modelInputH, modelInputW];
+  const max_output_boxes_per_class = 100;
   const iouThreshold = 0.7;
   const scoreThreshold = 0.25;
 
@@ -80,7 +83,7 @@ const App = () => {
               imageRef.current,
               canvasRef.current,
               session,
-              topk,
+              max_output_boxes_per_class,
               iouThreshold,
               scoreThreshold,
               modelInputShape
@@ -89,8 +92,8 @@ const App = () => {
         />
         <canvas
           id="canvas"
-          width={modelInputShape[2]}
-          height={modelInputShape[3]}
+          height={modelInputH}
+          width={modelInputW}
           ref={canvasRef}
         />
 

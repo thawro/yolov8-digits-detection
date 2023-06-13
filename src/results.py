@@ -1,5 +1,4 @@
-from src.transforms import xywh2xyxy
-from src.utils.vision import non_maximum_supression
+from src.ops import xywh2xyxy
 from src.visualization import plot_yolo_labels, ID2NAME
 
 import matplotlib.pyplot as plt
@@ -11,7 +10,6 @@ class Boxes:
         self.xywhn = xywhn
         self.h = h
         self.w = w
-
         self.cls = cls
         self.conf = conf
 
@@ -27,11 +25,6 @@ class Boxes:
     @property
     def xyxy(self):
         return xywh2xyxy(self.xywh)
-
-    def filter_by_idxs(self, idxs):
-        self.xywhn = self.xywhn[idxs]
-        self.cls = self.cls[idxs]
-        self.conf = self.conf[idxs]
 
 
 class DetectionResults:
@@ -52,27 +45,22 @@ class DetectionResults:
 
     @property
     def class_ids(self):
-        return self.boxes.cls.tolist()
+        return self.boxes.cls
 
     @property
     def conf(self):
-        return self.boxes.conf.tolist()
+        return self.boxes.conf
 
-    def non_maximum_supression(self, iou_threshold):
-        idxs = non_maximum_supression(self.boxes.xyxyn, self.boxes.conf, iou_threshold)
-        self.boxes.filter_by_idxs(idxs)
-
-    def visualize(self, plot=True):
+    def visualize(self, plot=False):
         if self.is_empty:
             print("No objects detected")
             return self.orig_image
         bbox_img = plot_yolo_labels(
             image=self.orig_image,
             bboxes_xywhn=self.boxes.xywhn,
-            class_ids=self.boxes.cls.tolist(),
-            confidences=self.boxes.conf.tolist(),
+            class_ids=self.class_ids,
+            confidences=self.conf,
             id2name=ID2NAME,
-            # id2color=ID2COLOR,
         )
         if plot:
             plt.figure(figsize=(12, 12))

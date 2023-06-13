@@ -1,22 +1,28 @@
 import gradio as gr
 import glob
 import numpy as np
-from src.onnx_model import YoloOnnxModel
+from src.object_detection import OnnxObjectDetector
 
-model = YoloOnnxModel("models/detection_model.onnx")
+model = OnnxObjectDetector(
+    preprocessing_path="models/preprocessing.onnx",
+    yolo_path="models/detection_model.onnx",
+    nms_path="models/nms.onnx",
+)
+
+
 examples = glob.glob("datasets/SVHN/examples/*")
 
 iou_threshold = 0.7
-conf_threshold = 0.25
+score_threshold = 0.25
 
 
-def predict(gray_img):
-    if len(gray_img.shape) == 2:
-        img = gray_img[..., np.newaxis]
-        img = np.repeat(img, 3, axis=2)
+def predict(image):
+    if len(image.shape) == 2:
+        input_image = image[..., np.newaxis]
+        input_image = np.repeat(input_image, 3, axis=2)
     else:
-        img = gray_img
-    results = model(img, iou_threshold=iou_threshold, conf_threshold=conf_threshold)
+        input_image = image
+    results = model(input_image, iou_threshold=iou_threshold, score_threshold=score_threshold)
     bbox_img = results.visualize(plot=False)
     return bbox_img
 
