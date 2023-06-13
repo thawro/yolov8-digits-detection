@@ -1,19 +1,19 @@
 import gradio as gr
 import glob
 import numpy as np
-from src.object_detection import OnnxObjectDetector
+from src.object_detection import OnnxObjectDetector, ObjectDetector
 
-object_detector = OnnxObjectDetector(
-    preprocessing_path="models/preprocessing.onnx",
-    yolo_path="models/detection_model.onnx",
-    nms_path="models/nms.onnx",
-)
+use_onnx = False
+iou_threshold = 0.7
+score_threshold = 0.25
+
+if use_onnx:
+    object_detector = OnnxObjectDetector()
+else:
+    object_detector = ObjectDetector()
 
 
 examples = glob.glob("datasets/SVHN/examples/*")
-
-iou_threshold = 0.7
-score_threshold = 0.25
 
 
 def predict(image: np.ndarray):

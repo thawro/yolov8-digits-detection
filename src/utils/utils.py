@@ -12,6 +12,7 @@ ROOT = Path(__file__).parent.parent.parent
 ID2NAME = {i: str(i) for i in range(10)}
 
 DATA_PATH = ROOT / "datasets"
+MODELS_PATH = ROOT / "models"
 
 
 class TqdmUpTo(tqdm):

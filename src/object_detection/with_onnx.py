@@ -1,6 +1,13 @@
 import numpy as np
 import onnxruntime as ort
 from src.object_detection.base import BaseObjectDetector
+from src.utils.utils import MODELS_PATH
+from pathlib import Path
+
+PREPROCESSING_PATH = MODELS_PATH / "preprocessing.onnx"
+YOLO_PATH = MODELS_PATH / "yolo.onnx"
+NMS_PATH = MODELS_PATH / "nms.onnx"
+POSTPROCESSING_PATH = MODELS_PATH / "postprocessing.onnx"
 
 
 def _const(value, dtype):
@@ -10,7 +17,12 @@ def _const(value, dtype):
 class OnnxModel:
     """Base class for ONNX models loading"""
 
-    def __init__(self, path: str, providers=["CUDAExecutionProvider", "CPUExecutionProvider"]):
+    def __init__(
+        self,
+        path: str | Path,
+        providers: list[str] = ["CUDAExecutionProvider", "CPUExecutionProvider"],
+    ):
+        path = path if isinstance(path, str) else str(path)
         self.session = ort.InferenceSession(path, providers=providers)
         model_inputs = self.session.get_inputs()
         model_outputs = self.session.get_outputs()
@@ -31,7 +43,7 @@ class OnnxPreprocessing(OnnxModel):
     `padding_tlbr` - padding added to top, left, bottom and right (needed to postprocess boxes)
     """
 
-    def __init__(self, path):
+    def __init__(self, path: str | Path):
         super().__init__(path, providers=["CPUExecutionProvider"])
 
     def __call__(self, image: np.ndarray, input_h: int, input_w: int, fill_value: int):
@@ -50,7 +62,9 @@ class OnnxYolo(OnnxModel):
     `output0` - output of YOLO model (tensor of shape [1, 4+num_classes, num_boxes])
     """
 
-    def __init__(self, path, providers=["CUDAExecutionProvider", "CPUExecutionProvider"]):
+    def __init__(
+        self, path: str | Path, providers=["CUDAExecutionProvider", "CPUExecutionProvider"]
+    ):
         super().__init__(path, providers)
         image_input = self.inputs[0]
         self.input_name = image_input["name"]
@@ -70,7 +84,7 @@ class OnnxNonMaxSupression(OnnxModel):
     `selected_class_ids` - class_ids of the boxes
     """
 
-    def __init__(self, path):
+    def __init__(self, path: str | Path):
         super().__init__(path, providers=["CPUExecutionProvider"])
 
     def __call__(
@@ -89,25 +103,39 @@ class OnnxNonMaxSupression(OnnxModel):
         return super().__call__(inputs)
 
 
-# TODO: remove
-class Postprocessing:
+class OnnxPostprocessing(OnnxModel):
+    """Postprocessing ONNX model
+    The __call__ method must accept `input_h`, `input_w`, `boxes_xywh` and `padding_tlbr`
+    and return dict with keys:
+    `boxes_xywhn` - Postprocessed boxes (normalized wrt original image)
+    """
+
+    def __init__(self, path: str | Path):
+        super().__init__(path, providers=["CPUExecutionProvider"])
+
     def __call__(
         self, input_h: int, input_w: int, boxes_xywh: np.ndarray, padding_tlbr: np.ndarray
     ):
-        pad_top, pad_left, pad_bottom, pad_right = padding_tlbr
-        boxes_xywh[:, 0] -= pad_left
-        boxes_xywh[:, 1] -= pad_top
-        h = input_h - (pad_top + pad_bottom)
-        w = input_w - (pad_left + pad_right)
-        boxes_xywhn = np.divide(boxes_xywh, np.array([w, h, w, h]))
-        return {"boxes_xywhn": boxes_xywhn}
+        inputs = {
+            "boxes_xywh": boxes_xywh,
+            "input_h": _const(input_h, np.int32),
+            "input_w": _const(input_w, np.int32),
+            "padding_tlbr": padding_tlbr,
+        }
+        return super().__call__(inputs)
 
 
 class OnnxObjectDetector(BaseObjectDetector):
-    def __init__(self, preprocessing_path: str, yolo_path: str, nms_path: str):
+    def __init__(
+        self,
+        preprocessing_path: str | Path = PREPROCESSING_PATH,
+        yolo_path: str | Path = YOLO_PATH,
+        nms_path: str | Path = NMS_PATH,
+        postprocessing_path: str | Path = POSTPROCESSING_PATH,
+    ):
         super().__init__(
             preprocessing=OnnxPreprocessing(preprocessing_path),
             yolo=OnnxYolo(yolo_path),
             nms=OnnxNonMaxSupression(nms_path),
-            postprocessing=Postprocessing(),
+            postprocessing=OnnxPostprocessing(postprocessing_path),
         )

@@ -6,7 +6,8 @@ from src.object_detection.base import (
     BasePostprocessing,
     BaseObjectDetector,
 )
-from src.object_detection.with_onnx import OnnxYolo
+from src.object_detection.with_onnx import OnnxYolo, YOLO_PATH
+from pathlib import Path
 
 
 class Preprocessing(BasePreprocessing):
@@ -47,16 +48,17 @@ class Postprocessing(BasePostprocessing):
         self, input_h: int, input_w: int, boxes_xywh: np.ndarray, padding_tlbr: np.ndarray
     ):
         pad_top, pad_left, pad_bottom, pad_right = padding_tlbr
-        boxes_xywh[:, 0] -= pad_left
-        boxes_xywh[:, 1] -= pad_top
-        h = input_h - (pad_top + pad_bottom)
-        w = input_w - (pad_left + pad_right)
-        boxes_xywhn = np.divide(boxes_xywh, np.array([w, h, w, h]))
+        boxes_xywh -= [pad_left, pad_top, 0, 0]
+        pad_y = pad_top + pad_bottom
+        pad_x = pad_left + pad_right
+        h = input_h - pad_y
+        w = input_w - pad_x
+        boxes_xywhn = boxes_xywh / [w, h, w, h]
         return {"boxes_xywhn": boxes_xywhn}
 
 
 class ObjectDetector(BaseObjectDetector):
-    def __init__(self, yolo_path):
+    def __init__(self, yolo_path: str | Path = YOLO_PATH):
         super().__init__(
             preprocessing=Preprocessing(),
             yolo=OnnxYolo(yolo_path),

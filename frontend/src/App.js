@@ -5,7 +5,7 @@ import Loader from "./components/Loader";
 import { detectImage } from "./utils/detect";
 import { download } from "./utils/download";
 import "./style/App.css";
-import { preprocessing_onnx, detection_onnx, nms_onnx } from "./assets";
+import { preprocessing_onnx, yolo_onnx, nms_onnx, postprocessing_onnx } from "./assets";
 
 const App = () => {
   const [session, setSession] = useState(null);
@@ -31,11 +31,14 @@ const App = () => {
     const preprocessingBuffer = await download(preprocessing_onnx, ["Loading Preprocessing", setLoading]);
     const preprocessing = await InferenceSession.create(preprocessingBuffer);
 
-    const modelBuffer = await download(detection_onnx, ["Loading YOLOv8 model", setLoading]);
-    const model = await InferenceSession.create(modelBuffer);
+    const yoloBuffer = await download(yolo_onnx, ["Loading YOLOv8 model", setLoading]);
+    const yolo = await InferenceSession.create(yoloBuffer);
 
     const nmsBuffer = await download(nms_onnx, ["Loading NMS model", setLoading]);
     const nms = await InferenceSession.create(nmsBuffer);
+
+    const postprocessingBuffer = await download(postprocessing_onnx, ["Loading Postprocessing model", setLoading]);
+    const postprocessing = await InferenceSession.create(postprocessingBuffer);
 
     // warmup main model
     setLoading({ text: "Warming up model...", progress: null });
@@ -44,12 +47,13 @@ const App = () => {
       new Float32Array(modelInputShape.reduce((a, b) => a * b)),
       modelInputShape
     );
-    await model.run({ images: tensor });
+    await yolo.run({ images: tensor });
 
     setSession({
       preprocessing: preprocessing,
-      net: model,
+      yolo: yolo,
       nms: nms,
+      postprocessing: postprocessing
     });
     setLoading(null);
   };

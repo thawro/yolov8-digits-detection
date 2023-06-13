@@ -1,6 +1,7 @@
 import onnx_graphsurgeon as gs
 import numpy as np
 import onnx
+from src.utils.utils import MODELS_PATH
 
 
 def create_onnx_NMS(filepath: str = "nms.onnx", opset: int = 18):
@@ -190,4 +191,4 @@ def create_onnx_NMS(filepath: str = "nms.onnx", opset: int = 18):
 
 
 if __name__ == "__main__":
-    create_onnx_NMS(filepath="nms.onnx", opset=18)
+    create_onnx_NMS(filepath=str(MODELS_PATH / "nms.onnx"), opset=18)
