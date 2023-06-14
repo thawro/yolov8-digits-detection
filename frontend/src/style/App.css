@@ -1,27 +1,21 @@
 .App {
-  height: 100vh;
   padding: 0 10px;
-  display: flex;
-  flex-direction: column;
+  position: relative;
   justify-content: center;
   align-items: center;
   background-color: bisque;
 }
 
-.App>* {
-  margin: 3px 0;
-}
-
 .header {
   text-align: center;
-  margin-top: 10px;
+  padding-top: 10px;
   margin-bottom: 30px;
 }
 
 .footer {
   text-align: center;
   margin-top: 30px;
-  margin-bottom: 20px;
+  padding-bottom: 20px;
 }
 
 .header p {
@@ -39,12 +33,19 @@
   border-radius: 5px;
 }
 
+.detector {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+}
+
 button {
   text-decoration: none;
   color: white;
   background-color: black;
   border: 2px solid black;
-  margin: 0 5px;
+  margin: 5px 5px;
   padding: 5px;
   border-radius: 5px;
   cursor: pointer;
@@ -54,4 +55,14 @@ button:hover {
   color: black;
   background-color: white;
   border: 2px solid black;
+}
+
+.menuItem {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.menuItem>label {
+  margin-right: 10px;
 }

@@ -4,10 +4,8 @@ import { renderBoxes } from "../utils/renderBox";
 
 
 
-const DetectionRenderer = ({ imageRef, canvasRef, session, modelInputShape, canvasHeight, canvasWidth }) => {
+const DetectionRenderer = ({ imageRef, canvasRef, session, modelInputShape, iouThreshold, scoreThreshold }) => {
     const max_output_boxes_per_class = 100;
-    const iouThreshold = 0.7;
-    const scoreThreshold = 0.25;
 
     const detectAndRender = async () => {
         const boxes = await detectObjects(
@@ -22,7 +20,7 @@ const DetectionRenderer = ({ imageRef, canvasRef, session, modelInputShape, canv
     }
 
     return <>
-        <canvas id="canvas" height={canvasHeight} width={canvasWidth} ref={canvasRef} />
+        <canvas id="canvas" ref={canvasRef} />
         <img
             ref={imageRef}
             src="#"

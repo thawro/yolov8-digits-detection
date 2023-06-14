@@ -26,7 +26,6 @@ export const detectObjects = async (
     const model_input_h = new Tensor("int32", new Int32Array([modelHeight]))
     const model_input_w = new Tensor("int32", new Int32Array([modelWidth]))
     const imageShape = [sourceImgC4.rows, sourceImgC4.cols, sourceImgC4.channels()]
-    console.log(imageShape)
 
     // console.time("preprocessing")
     let preprocessed

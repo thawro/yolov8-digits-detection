@@ -13,12 +13,12 @@ export const renderBoxes = (imageRef, canvasRef, boxes) => {
     const colors = new Colors();
 
     // font configs
-    const font = `${Math.max(Math.round(Math.max(ctx.canvas.width, ctx.canvas.height) / 40), 12)}px Arial`;
+    const font = `${Math.max(Math.round(Math.max(ctx.canvas.width, ctx.canvas.height) / 40), 14)}px Arial`;
     ctx.font = font;
     ctx.textBaseline = "top";
     const H = canvas.height
     const W = canvas.width
-    // Load the image
+
     const image = new Image();
     image.src = imageRef.current.src
     ctx.drawImage(image, 0, 0);
@@ -26,7 +26,7 @@ export const renderBoxes = (imageRef, canvasRef, boxes) => {
     boxes.forEach((box) => {
         const class_id = labels[box.label];
         const color = colors.get(box.label);
-        const score = (box.conf).toFixed(1);
+        const score = (box.conf).toFixed(2);
         const [xn, yn, wn, hn] = box.box_xywhn; // center x and y
 
         let x = (xn * W)
@@ -48,21 +48,27 @@ export const renderBoxes = (imageRef, canvasRef, boxes) => {
 
         // draw the label background.
         ctx.fillStyle = color;
-        const txt = class_id + "  " + score
-        const textWidth = ctx.measureText(txt).width;
-        const textHeight = parseInt(font, 10); // base 10
-        const yText = y - (textHeight + ctx.lineWidth);
+        const labelTxt = class_id + "    " + score
+        const labelTextWidth = ctx.measureText(labelTxt).width;
+        const TextHeight = parseInt(font, 10); // base 10
+        const yText = y - (TextHeight + ctx.lineWidth);
+
         ctx.fillRect(
             x - 1,
             yText < 0 ? 0 : yText,
-            textWidth + ctx.lineWidth,
-            textHeight + ctx.lineWidth
+            labelTextWidth + ctx.lineWidth,
+            TextHeight + ctx.lineWidth
         );
 
         // Draw labels
         ctx.fillStyle = "#ffffff";
-        ctx.fillText(txt, x - 1, yText < 0 ? 1 : yText + 1);
+        ctx.fillText(labelTxt, x - 1, yText < 0 ? 1 : yText + 1);
     });
+    const sizeTxt = H + " x " + W
+    const sizeTxtWidth = ctx.measureText(sizeTxt).width;
+    ctx.font = `14px Arial`;
+    ctx.fillStyle = "#777777"
+    ctx.fillText(sizeTxt, W - sizeTxtWidth - 3, 5);
 
 };
 
