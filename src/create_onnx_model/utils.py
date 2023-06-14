@@ -50,6 +50,12 @@ def div(self, a, b, name="ratio", shape=None):
 
 
 @gs.Graph.register()
+def mul(self, a, b, name="mul", shape=None):
+    out = self.layer(op="Mul", inputs=[a, b], outputs=[name])[0]
+    return parse_out(out, a.dtype, name, shape)
+
+
+@gs.Graph.register()
 def sub(self, a, b, name="diff", shape=None):
     out = self.layer(op="Sub", inputs=[a, b], outputs=[name])[0]
     return parse_out(out, a.dtype, name, shape)

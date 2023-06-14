@@ -20,6 +20,7 @@ from src.create_onnx_model.utils import (
     concat,
     pad_image,
     transpose,
+    mul,
 )
 import onnx
 
@@ -62,7 +63,7 @@ def create_onnx_preprocessing(filepath: str = "preprocessing.onnx", opset: int =
 
     else_subgraph = gs.Graph(opset=opset)
     else_img_h = else_subgraph.identity(input_h_float, name="else_img_h", shape=(1,))
-    else_img_w = else_subgraph.div(input_h_float, aspect_ratio, name="else_img_w", shape=(1,))
+    else_img_w = else_subgraph.mul(input_h_float, aspect_ratio, name="else_img_w", shape=(1,))
     else_subgraph.outputs = [else_img_h, else_img_w]
 
     new_img_h_float, new_img_w_float = graph.if_statement(

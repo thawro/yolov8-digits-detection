@@ -14,9 +14,21 @@
 
 .header {
   text-align: center;
+  margin-top: 10px;
+  margin-bottom: 30px;
+}
+
+.footer {
+  text-align: center;
+  margin-top: 30px;
+  margin-bottom: 20px;
 }
 
 .header p {
+  margin: 5px 0;
+}
+
+.footer p {
   margin: 5px 0;
 }
 
@@ -25,25 +37,6 @@
   color: greenyellow;
   background-color: black;
   border-radius: 5px;
-}
-
-.content>img {
-  width: 100%;
-  max-width: 720px;
-  max-height: 500px;
-  border-radius: 10px;
-}
-
-.content {
-  position: relative;
-}
-
-.content>canvas {
-  position: absolute;
-  top: 0;
-  left: 0;
-  width: 100%;
-  height: 100%;
 }
 
 button {
