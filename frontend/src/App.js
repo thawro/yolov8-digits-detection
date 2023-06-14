@@ -1,8 +1,7 @@
 import React, { useState } from "react";
-import { Loader, Header, SketchObjectDetector, ImageObjectDetector, Footer } from "./components";
+import { Loader, Header, SketchObjectDetector, Footer, CustomSlider } from "./components";
 import "./style/App.css";
 import { loadOnnxSession } from "./utils/loadOnnxSession";
-
 
 const App = () => {
   const [session, setSession] = useState(null);
@@ -35,11 +34,11 @@ const App = () => {
           <div className="detector">
             <div className="menuItem">
               <label htmlFor="scoreThreshold">Confidence threshold: </label>
-              <input id="scoreThreshold" type="range" min={0} max={1} step={0.01} value={scoreThreshold} onChange={(e) => setScoreThreshold(e.target.value)} />
+              <CustomSlider defaultValue={scoreThreshold} setValue={(e) => setScoreThreshold(e.target.value)} min={0} max={1} step={0.01} />
             </div>
             <div className="menuItem">
               <label htmlFor="iouThreshold">IoU threshold: </label>
-              <input id="iouThreshold" type="range" min={0} max={1} step={0.01} value={iouThreshold} onChange={(e) => setIouThreshold(e.target.value)} />
+              <CustomSlider defaultValue={iouThreshold} setValue={(e) => setIouThreshold(e.target.value)} min={0} max={1} step={0.01} />
             </div>
             <SketchObjectDetector {...detectorProps} />
           </div>

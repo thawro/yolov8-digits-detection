@@ -1,12 +1,13 @@
 import React, { useState, useRef, useEffect } from "react";
 import { DrawableCanvas, DetectionRenderer } from ".";
+import { CustomSlider } from "../components";
 
 
 const SketchMenu = ({ lineWidth, handleLineWidthChange, color, handleColorChange, canvasWidth, handleCanvasSizeChange, canvasHeight }) => {
     return <div className="sketchMenu">
         <div className="menuItem">
             <label htmlFor="lineWidth">Line width: </label>
-            <input id="lineWidth" type="range" min={2} max={40} step={1} value={lineWidth} onChange={handleLineWidthChange} />
+            <CustomSlider defaultValue={lineWidth} setValue={handleLineWidthChange} min={2} max={40} step={1} />
         </div>
         <div className="menuItem">
             <label htmlFor="lineWidth">Color: </label>
@@ -14,15 +15,11 @@ const SketchMenu = ({ lineWidth, handleLineWidthChange, color, handleColorChange
         </div>
         <div className="menuItem">
             <label htmlFor="canvasWidth">Canvas width: </label>
-            <input id="canvasWidth" type="range" min={100} max={800} step={10} value={canvasWidth}
-                onChange={(e) => handleCanvasSizeChange(e, "width")}
-            />
+            <CustomSlider defaultValue={canvasWidth} setValue={(e) => handleCanvasSizeChange(e, "width")} min={100} max={800} step={10} />
         </div>
         <div className="menuItem">
             <label htmlFor="canvasHeight">Canvas height: </label>
-            <input id="canvasHeight" type="range" min={100} max={800} step={10} value={canvasHeight}
-                onChange={(e) => handleCanvasSizeChange(e, "height")}
-            />
+            <CustomSlider defaultValue={canvasHeight} setValue={(e) => handleCanvasSizeChange(e, "height")} min={100} max={800} step={10} />
         </div>
     </div>
 }

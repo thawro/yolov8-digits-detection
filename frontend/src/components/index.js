@@ -6,6 +6,7 @@ import DetectionRenderer from "./DetectionRenderer";
 import SketchObjectDetector from "./SketchObjectDetector";
 import ImageObjectDetector from "./ImageObjectDetector";
 import Footer from "./Footer";
+import CustomSlider from "./CustomSlider";
 
 export {
     Header,
@@ -15,5 +16,6 @@ export {
     DetectionRenderer,
     SketchObjectDetector,
     ImageObjectDetector,
-    Footer
+    Footer,
+    CustomSlider
 }
