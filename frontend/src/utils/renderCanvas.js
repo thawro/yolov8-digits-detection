@@ -64,11 +64,34 @@ export const renderBoxes = (imageRef, canvasRef, boxes) => {
         ctx.fillStyle = "#ffffff";
         ctx.fillText(labelTxt, x - 1, yText < 0 ? 1 : yText + 1);
     });
+};
+
+export const renderInfo = (canvasRef, speed) => {
+    const canvas = canvasRef.current
+    const ctx = canvas.getContext("2d");
+
+    const colors = new Colors();
+
+    ctx.textBaseline = "top";
+    const H = canvas.height
+    const W = canvas.width
+
     const sizeTxt = H + " x " + W
-    const sizeTxtWidth = ctx.measureText(sizeTxt).width;
+
     ctx.font = `14px Arial`;
     ctx.fillStyle = "#777777"
-    ctx.fillText(sizeTxt, W - sizeTxtWidth - 3, 5);
+    ctx.fillText(sizeTxt, 8, 8);
+
+    let totalTime = 0
+    for (let key in speed) {
+        if (speed.hasOwnProperty(key)) {
+            const time = speed[key];
+            totalTime += time
+        }
+    }
+    let fps = Math.floor(1000 / totalTime)
+    let speedTxt = "Latency: " + totalTime + "ms (~" + fps + "fps)"
+    ctx.fillText(speedTxt, 8, 10 + 14);
 
 };
 

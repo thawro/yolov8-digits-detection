@@ -1,46 +1,78 @@
 import React, { useEffect } from "react";
 import "../style/loader.css";
 
+function getMousePosition(e, canvas) {
+    var mouseX = e.offsetX * canvas.width / canvas.clientWidth | 0;
+    var mouseY = e.offsetY * canvas.height / canvas.clientHeight | 0;
+    return { x: mouseX, y: mouseY };
+}
 
-const DrawableCanvas = ({ canvasRef, runDetection, setIsDrawing, isDrawingRef }) => {
+
+const DrawableCanvas = ({ initCanvasHeight, initCanvasWidth, canvasRef, runDetection, setIsDrawing, isDrawingRef }) => {
+    let canvas, ctx;
 
     useEffect(() => {
-        const canvas = canvasRef.current
-        const context = canvas.getContext('2d')
-        runDetection() // predict on whiteboard to show it as output
+        canvas = canvasRef.current
+        ctx = canvas.getContext('2d')
+        ctx.willReadFrequently = true
 
-        context.fillStyle = '#FFFFFF'; // White color
-        context.fillRect(0, 0, canvas.width, canvas.height);
+        ctx.fillStyle = '#FFFFFF'; // White color
+        ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        const draw = (event) => {
-
-            const { offsetX, offsetY } = event;
-            context.lineTo(offsetX, offsetY);
-            context.stroke();
-        };
+        const draw = (x, y) => {
+            // if (!isDrawingRef.current) { return }
+            ctx.lineTo(x, y);
+            ctx.stroke();
+        }
 
         const stopDrawing = () => {
             isDrawingRef.current = false
-            setIsDrawing(false)
             runDetection()
+            document.documentElement.style.overflow = 'auto';
+            setIsDrawing(false)
+        }
+
+        const touchDraw = (e) => {
+            e.preventDefault()
+            e.stopPropagation();
+            const canvasRect = canvas.getBoundingClientRect()
+            const scrollTop = document.documentElement.scrollTop
+            const { pageX, pageY } = e.touches[0]
+            const x = pageX - canvasRect.x
+            const y = pageY - canvasRect.y - scrollTop
+            draw(x, y)
         };
 
-        canvas.addEventListener('pointermove', draw);
-        canvas.addEventListener('pointerup', stopDrawing);
-        canvas.addEventListener('pointerout', stopDrawing);
-
-        return () => {
-            canvas.addEventListener('pointermove', draw);
-            canvas.addEventListener('pointerup', stopDrawing);
-            canvas.addEventListener('pointerout', stopDrawing);
+        const mouseDraw = (e) => {
+            const { x, y } = getMousePosition(e, canvas)
+            draw(x, y)
         };
-    }, [canvasRef, isDrawingRef, setIsDrawing]);
+
+        const mouseStopDrawing = (e) => { stopDrawing() };
+
+        const touchStopDrawing = (e) => {
+            e.preventDefault();
+            stopDrawing()
+        };
+
+        canvas.addEventListener('mousemove', mouseDraw);
+        canvas.addEventListener('touchmove', touchDraw);
+        canvas.addEventListener('mouseup', mouseStopDrawing);
+        canvas.addEventListener('touchend', touchStopDrawing);
+        // return () => {
+        //     canvas.addEventListener('mousemove', mouseDraw);
+        //     canvas.addEventListener('touchmove', touchDraw);
+        //     canvas.addEventListener('mouseup', mouseStopDrawing);
+        //     canvas.addEventListener('touchend', touchStopDrawing);
+        // };
+    }, []);
 
 
     return <>
         <canvas
             ref={canvasRef}
             id="sketchCanvas"
+            width={initCanvasWidth} height={initCanvasHeight}
         />
 
 

@@ -3,6 +3,24 @@ import { Loader, Header, SketchObjectDetector, Footer, CustomSlider } from "./co
 import "./style/App.css";
 import { loadOnnxSession } from "./utils/loadOnnxSession";
 
+const ModelConfigMenu = ({ scoreThreshold, setScoreThreshold, iouThreshold, setIouThreshold }) => {
+  return <div className="modelConfigMenu">
+    <div className="configMenu">
+      <h3 className="configTitle">Model configuration</h3>
+      <div className="configInputs">
+        <div className="menuItem">
+          <label htmlFor="scoreThreshold">Confidence threshold: </label>
+          <CustomSlider defaultValue={scoreThreshold} setValue={(e) => setScoreThreshold(e.target.value)} min={0} max={1} step={0.01} />
+        </div>
+        <div className="menuItem">
+          <label htmlFor="iouThreshold">IoU threshold: </label>
+          <CustomSlider defaultValue={iouThreshold} setValue={(e) => setIouThreshold(e.target.value)} min={0} max={1} step={0.01} />
+        </div>
+      </div>
+    </div>
+  </div>
+}
+
 const App = () => {
   const [session, setSession] = useState(null);
   const [loading, setLoading] = useState({ text: "Loading OpenCV.js", progress: null });
@@ -19,6 +37,13 @@ const App = () => {
     scoreThreshold: scoreThreshold
   }
 
+  const modelConfigMenuProps = {
+    scoreThreshold: scoreThreshold,
+    setScoreThreshold: setScoreThreshold,
+    iouThreshold: iouThreshold,
+    setIouThreshold: setIouThreshold
+  }
+
   return (
     <div className="App" style={{ height: loading ? "100vh" : "100%" }}>
 
@@ -27,19 +52,10 @@ const App = () => {
           {loading.progress ? `${loading.text} - ${loading.progress}%` : loading.text}
         </Loader>
         :
-
         <>
           <Header />
-
+          <ModelConfigMenu {...modelConfigMenuProps} />
           <div className="detector">
-            <div className="menuItem">
-              <label htmlFor="scoreThreshold">Confidence threshold: </label>
-              <CustomSlider defaultValue={scoreThreshold} setValue={(e) => setScoreThreshold(e.target.value)} min={0} max={1} step={0.01} />
-            </div>
-            <div className="menuItem">
-              <label htmlFor="iouThreshold">IoU threshold: </label>
-              <CustomSlider defaultValue={iouThreshold} setValue={(e) => setIouThreshold(e.target.value)} min={0} max={1} step={0.01} />
-            </div>
             <SketchObjectDetector {...detectorProps} />
           </div>
           <Footer />

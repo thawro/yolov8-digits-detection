@@ -4,30 +4,42 @@ import { CustomSlider } from "../components";
 
 
 const SketchMenu = ({ lineWidth, handleLineWidthChange, color, handleColorChange, canvasWidth, handleCanvasSizeChange, canvasHeight }) => {
-    return <div className="sketchMenu">
-        <div className="menuItem">
-            <label htmlFor="lineWidth">Line width: </label>
-            <CustomSlider defaultValue={lineWidth} setValue={handleLineWidthChange} min={2} max={40} step={1} />
-        </div>
-        <div className="menuItem">
-            <label htmlFor="lineWidth">Color: </label>
-            <input id="color" type="color" value={color} onChange={handleColorChange} />
-        </div>
-        <div className="menuItem">
-            <label htmlFor="canvasWidth">Canvas width: </label>
-            <CustomSlider defaultValue={canvasWidth} setValue={(e) => handleCanvasSizeChange(e, "width")} min={100} max={800} step={10} />
-        </div>
-        <div className="menuItem">
-            <label htmlFor="canvasHeight">Canvas height: </label>
-            <CustomSlider defaultValue={canvasHeight} setValue={(e) => handleCanvasSizeChange(e, "height")} min={100} max={800} step={10} />
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
+    const maxWidth = Math.floor(screenWidth * 0.8)
+    const maxHeight = Math.floor(screenHeight * 0.6)
+
+    return <div className="configMenu">
+        <h3 className="configTitle">Canvas configuration</h3>
+        <div className="configInputs">
+            <div className="menuItem">
+                <label htmlFor="lineWidth">Line width: </label>
+                <CustomSlider defaultValue={lineWidth} setValue={handleLineWidthChange} min={2} max={40} step={1} />
+            </div>
+            <div className="menuItem">
+                <label htmlFor="lineWidth">Color: </label>
+                <span><input id="color" type="color" value={color} onChange={handleColorChange} /></span>
+            </div>
+            <div className="menuItem">
+                <label htmlFor="canvasWidth">Canvas width: </label>
+                <CustomSlider defaultValue={canvasWidth} setValue={(e) => handleCanvasSizeChange(e, "width")} min={100} max={maxWidth} step={10} />
+            </div>
+            <div className="menuItem">
+                <label htmlFor="canvasHeight">Canvas height: </label>
+                <CustomSlider defaultValue={canvasHeight} setValue={(e) => handleCanvasSizeChange(e, "height")} min={100} max={maxHeight} step={10} />
+            </div>
         </div>
     </div>
 }
 
 
 const SketchObjectDetector = ({ session, modelInputShape, iouThreshold, scoreThreshold }) => {
-    const initCanvasHeight = 500
-    const initCanvasWidth = 500
+    const screenWidth = window.innerWidth;
+    const screenHeight = window.innerHeight;
+
+    const initCanvasWidth = Math.floor(screenWidth * 0.65)
+    const initCanvasHeight = Math.floor(screenHeight * 0.4)
     const [canvasHeight, setCanvasHeight] = useState(initCanvasHeight)
     const [canvasWidth, setCanvasWidth] = useState(initCanvasWidth)
     const isDrawingRef = useRef(false)
@@ -42,8 +54,55 @@ const SketchObjectDetector = ({ session, modelInputShape, iouThreshold, scoreThr
     const [color, setColor] = useState('#000000');
 
     const runDetection = () => {
+        console.log("DETECTING")
         imageRef.current.src = sketchCanvasRef.current.toDataURL('image/png');
     }
+
+    useEffect(() => {
+        const sketchCanvas = sketchCanvasRef.current
+        const boxesCanvas = boxesCanvasRef.current
+
+        const sketchCtx = sketchCanvas.getContext("2d")
+        sketchCtx.willReadFrequently = true
+
+        const boxesCtx = boxesCanvas.getContext("2d")
+        boxesCtx.willReadFrequently = true
+
+        const startDrawing = () => {
+            isDrawingRef.current = true
+            document.documentElement.style.overflow = 'hidden';
+            setIsDrawing(true)
+            sketchCtx.beginPath();
+        }
+        const mouseStartDrawing = (e) => { startDrawing() };
+
+        const touchStartDrawing = (e) => {
+            e.preventDefault();
+            startDrawing()
+        };
+
+        boxesCanvas.addEventListener('mousedown', mouseStartDrawing);
+        boxesCanvas.addEventListener('touchstart', touchStartDrawing);
+
+        sketchCanvas.style.display = isDrawing ? "block" : "none"
+        boxesCanvas.style.display = isDrawing ? "none" : "block"
+
+
+        return () => {
+            boxesCanvas.addEventListener('mousedown', mouseStartDrawing);
+            boxesCanvas.addEventListener('touchstart', touchStartDrawing);
+        };
+
+    }, [isDrawing]);
+
+    useEffect(() => {
+        runDetection()
+    }, [iouThreshold, scoreThreshold])
+
+    useEffect(() => {
+        sketchCanvasRef.current.getContext("2d").lineWidth = lineWidth
+        sketchCanvasRef.current.getContext("2d").strokeStyle = color
+    }, [lineWidth, color])
 
     const handleLineWidthChange = (event) => {
         const lw = event.target.value
@@ -58,16 +117,19 @@ const SketchObjectDetector = ({ session, modelInputShape, iouThreshold, scoreThr
     };
 
     const handleCanvasSizeChange = (event, sizeType) => {
-        const size = event.target.value
         const sketchCanvas = sketchCanvasRef.current
+        const sketchCtx = sketchCanvas.getContext("2d")
+
         const boxesCanvas = boxesCanvasRef.current
-        const sketchCanvasCtx = sketchCanvas.getContext("2d")
-        const boxesCanvasCtx = boxesCanvas.getContext("2d")
+        const boxesCtx = boxesCanvas.getContext("2d")
 
+        const size = event.target.value
         const prevSize = sketchCanvas[sizeType]
+        const sketchLineWidth = sketchCtx.lineWidth
+        const sketchColor = sketchCtx.strokeStyle
 
-        const boxesData = boxesCanvasCtx.getImageData(0, 0, canvasWidth, canvasHeight);
-        const sketchData = sketchCanvasCtx.getImageData(0, 0, canvasWidth, canvasHeight);
+        const boxesData = boxesCtx.getImageData(0, 0, canvasWidth, canvasHeight);
+        const sketchData = sketchCtx.getImageData(0, 0, canvasWidth, canvasHeight);
 
         const offset = (size - prevSize) / 2;
 
@@ -75,62 +137,48 @@ const SketchObjectDetector = ({ session, modelInputShape, iouThreshold, scoreThr
         boxesCanvas[sizeType] = size
         clearCanvas()
 
+        sketchCtx.strokeStyle = sketchColor
+        sketchCtx.lineWidth = sketchLineWidth
+
+
         if (sizeType === "width") {
-            boxesCanvasCtx.putImageData(boxesData, offset, 0);
-            sketchCanvasCtx.putImageData(sketchData, offset, 0);
+            boxesCtx.putImageData(boxesData, offset, 0);
+            sketchCtx.putImageData(sketchData, offset, 0);
             setCanvasWidth(size)
         } else {
-            boxesCanvasCtx.putImageData(boxesData, 0, offset);
-            sketchCanvasCtx.putImageData(sketchData, 0, offset);
+            boxesCtx.putImageData(boxesData, 0, offset);
+            sketchCtx.putImageData(sketchData, 0, offset);
             setCanvasHeight(size)
         }
         runDetection()
-
     };
 
     const clearCanvas = () => {
         const sketchCanvas = sketchCanvasRef.current
+        const sketchCtx = sketchCanvas.getContext("2d")
         const boxesCanvas = boxesCanvasRef.current
-        sketchCanvas.getContext("2d").fillStyle = '#FFFFFF'
-        sketchCanvas.getContext("2d").fillRect(0, 0, sketchCanvas.width, sketchCanvas.height)
-        boxesCanvas.getContext("2d").fillStyle = '#FFFFFF'
-        boxesCanvas.getContext("2d").fillRect(0, 0, boxesCanvas.width, boxesCanvas.height)
-        imageRef.current.src = sketchCanvasRef.current.toDataURL('image/png');
+        const boxesCtx = boxesCanvas.getContext("2d")
+        sketchCtx.fillStyle = '#FFFFFF'
+        sketchCtx.fillRect(0, 0, sketchCanvas.width, sketchCanvas.height)
+        boxesCtx.fillStyle = '#FFFFFF'
+        boxesCtx.fillRect(0, 0, boxesCanvas.width, boxesCanvas.height)
+        imageRef.current.src = sketchCanvas.toDataURL('image/png');
     }
-    useEffect(() => {
-        runDetection()
-    }, [iouThreshold, scoreThreshold])
-
-    useEffect(() => {
-        boxesCanvasRef.current.height = initCanvasHeight
-        boxesCanvasRef.current.width = initCanvasWidth
-
-        sketchCanvasRef.current.height = initCanvasHeight
-        sketchCanvasRef.current.width = initCanvasWidth
-        clearCanvas()
-    }, [])
-
-    useEffect(() => {
-        const sketchCtx = sketchCanvasRef.current.getContext("2d")
-
-        sketchCtx.lineWidth = lineWidth
-
-        boxesCanvasRef.current.addEventListener('pointerdown', (event) => {
-            const { offsetX, offsetY } = event
-            setIsDrawing(true)
-            sketchCtx.moveTo(offsetX, offsetY);
-            sketchCtx.beginPath();
-        });
-        sketchCanvasRef.current.style.display = isDrawing ? "block" : "none"
-        boxesCanvasRef.current.style.display = isDrawing ? "none" : "block"
-
-    }, [isDrawing, lineWidth]);
-
 
     return <>
-        <button onClick={clearCanvas}>Clear</button>
+        <SketchMenu
+            lineWidth={lineWidth}
+            handleLineWidthChange={handleLineWidthChange}
+            color={color}
+            handleColorChange={handleColorChange}
+            canvasWidth={canvasWidth}
+            handleCanvasSizeChange={handleCanvasSizeChange}
+            canvasHeight={canvasHeight}
+        />
         <div>
             <DrawableCanvas
+                initCanvasHeight={initCanvasHeight}
+                initCanvasWidth={initCanvasWidth}
                 canvasRef={sketchCanvasRef}
                 setIsDrawing={setIsDrawing}
                 runDetection={runDetection}
@@ -139,6 +187,8 @@ const SketchObjectDetector = ({ session, modelInputShape, iouThreshold, scoreThr
                 canvasWidth={canvasWidth}
             />
             <DetectionRenderer
+                initCanvasHeight={initCanvasHeight}
+                initCanvasWidth={initCanvasWidth}
                 imageRef={imageRef}
                 canvasRef={boxesCanvasRef}
                 session={session}
@@ -149,16 +199,7 @@ const SketchObjectDetector = ({ session, modelInputShape, iouThreshold, scoreThr
                 scoreThreshold={scoreThreshold}
             />
         </div>
-        <SketchMenu
-            lineWidth={lineWidth}
-            handleLineWidthChange={handleLineWidthChange}
-            color={color}
-            handleColorChange={handleColorChange}
-            canvasWidth={canvasWidth}
-            handleCanvasSizeChange={handleCanvasSizeChange}
-            canvasHeight={canvasHeight}
-        />
-
+        <button onClick={clearCanvas}>Clear</button>
     </>
 };
 

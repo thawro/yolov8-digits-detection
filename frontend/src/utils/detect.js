@@ -21,13 +21,14 @@ export const detectObjects = async (
 ) => {
     const [modelHeight, modelWidth] = inputShape.slice(2);
     const sourceImgC4 = cv.imread(image); // read from img tag
-    const useONNX = true
+    const useONNX = false
 
     const model_input_h = new Tensor("int32", new Int32Array([modelHeight]))
     const model_input_w = new Tensor("int32", new Int32Array([modelWidth]))
     const imageShape = [sourceImgC4.rows, sourceImgC4.cols, sourceImgC4.channels()]
 
-    // console.time("preprocessing")
+
+    let startTime = new Date();
     let preprocessed
     if (useONNX) {
         const inp_image = new Tensor("uint8", sourceImgC4.data, imageShape); // to ort.Tensor
@@ -45,15 +46,16 @@ export const detectObjects = async (
         preprocessed.padding_tlbr = new Tensor("int32", new Int32Array(preprocessed.padding_tlbr), [4]);
     }
     const { preprocessed_img, padding_tlbr } = preprocessed
-    // console.timeEnd("preprocessing")
+    const preprocessingTime = new Date() - startTime;
 
-    // console.time("detection")
+
+    startTime = new Date();
     const tensor_img = new Tensor("float32", preprocessed_img.data, inputShape);
-
     const { output0 } = await session.yolo.run({ images: tensor_img }); // run yolo on preprocessed image and get outputs
-    // console.timeEnd("detection")
+    const detectionTime = new Date() - startTime;
 
-    // console.time("nms")
+
+    startTime = new Date();
     const { selected_boxes_xywh, selected_class_scores, selected_class_ids } = await session.nms.run(
         {
             output0: output0,
@@ -62,11 +64,11 @@ export const detectObjects = async (
             score_threshold: new Tensor("float32", new Float32Array([scoreThreshold])),
         }
     ) // filter out boxes with Non Max Supression
-    // console.timeEnd("nms")
+    const nmsTime = new Date() - startTime;
 
+
+    startTime = new Date();
     const numBoxes = selected_boxes_xywh.dims[0]
-
-    // console.time("postprocessing")
     let boxes_xywhn_2d
     if (useONNX) {
         const { boxes_xywhn } = await session.postprocessing.run(
@@ -83,11 +85,11 @@ export const detectObjects = async (
             const box = boxes_xywhn.data.subarray(boxStartIdx, boxStartIdx + 4)
             boxes_xywhn_2d.push(box)
         }
-
     } else {
         boxes_xywhn_2d = postprocessing(modelHeight, modelWidth, selected_boxes_xywh, padding_tlbr).boxes_xywhn
     }
-    // console.timeEnd("postprocessing")
+    const postprocessingTime = new Date() - startTime;
+
     const boxes = []
     for (let idx = 0; idx < numBoxes; idx++) {
         boxes.push({
@@ -97,7 +99,13 @@ export const detectObjects = async (
         })
     }
     sourceImgC4.delete()
-    return boxes
+    const speed = {
+        preprocessing: preprocessingTime,
+        detection: detectionTime,
+        nms: nmsTime,
+        postprocessing: postprocessingTime
+    }
+    return { boxes: boxes, speed: speed }
 };
 
 /**
@@ -123,7 +131,7 @@ const preprocessing = (sourceImgC4, modelHeight, modelWidth) => {
         newImgH = Math.floor(modelWidth / aspectRatio)
     } else {
         newImgH = modelHeight
-        newImgW = Math.floor(modelHeight / aspectRatio)
+        newImgW = Math.floor(modelHeight * aspectRatio)
     }
     let resizedImg = new cv.Mat(newImgH, newImgW, cv.CV_8UC3)
     let newSize = new cv.Size(newImgW, newImgH)

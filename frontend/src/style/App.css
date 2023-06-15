@@ -1,10 +1,9 @@
 .App {
-  padding: 0 10px;
-  position: relative;
-  justify-content: center;
-  align-items: center;
-  background-color: bisque;
+  margin: 0 auto;
+  margin-top: 0px;
+  max-width: 1200px;
 }
+
 
 .header {
   text-align: center;
@@ -33,11 +32,16 @@
   border-radius: 5px;
 }
 
-.detector {
+.detector,
+.modelConfigMenu {
   display: flex;
   align-items: center;
   justify-content: center;
   flex-direction: column;
+}
+
+.detector {
+  margin-top: 20px;
 }
 
 button {
@@ -58,12 +62,40 @@ button:hover {
 }
 
 .menuItem {
-  min-width: 200px;
+  width: 80%;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .menuItem>label {
-  margin-right: 10px;
+  padding-right: 10px;
+  width: 50%;
+  text-align: end;
+}
+
+.menuItem>span,
+.menuItem>input {
+  width: 50%;
+  display: flex;
+  justify-content: center;
+  text-align: end;
+}
+
+.configMenu {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 70%;
+  max-width: 500px;
+}
+
+.configInputs {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-direction: column;
+  width: 100%;
+  max-width: 500px;
 }
