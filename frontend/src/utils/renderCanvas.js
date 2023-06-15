@@ -38,7 +38,6 @@ export const renderBoxes = (imageRef, canvasRef, boxes) => {
         x = x - w / 2
         y = y - h / 2
 
-
         ctx.fillStyle = Colors.hexToRgba(color, 0.2);
         ctx.fillRect(x, y, w, h);
         // draw border box

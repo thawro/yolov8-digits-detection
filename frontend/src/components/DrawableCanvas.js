@@ -20,14 +20,14 @@ const DrawableCanvas = ({ initCanvasHeight, initCanvasWidth, canvasRef, runDetec
         ctx.fillRect(0, 0, canvas.width, canvas.height);
 
         const draw = (x, y) => {
-            // if (!isDrawingRef.current) { return }
+            if (!isDrawingRef.current) { return }
             ctx.lineTo(x, y);
             ctx.stroke();
         }
 
         const stopDrawing = () => {
-            isDrawingRef.current = false
             runDetection()
+            isDrawingRef.current = false
             document.documentElement.style.overflow = 'auto';
             setIsDrawing(false)
         }
@@ -59,14 +59,13 @@ const DrawableCanvas = ({ initCanvasHeight, initCanvasWidth, canvasRef, runDetec
         canvas.addEventListener('touchmove', touchDraw);
         canvas.addEventListener('mouseup', mouseStopDrawing);
         canvas.addEventListener('touchend', touchStopDrawing);
-        // return () => {
-        //     canvas.addEventListener('mousemove', mouseDraw);
-        //     canvas.addEventListener('touchmove', touchDraw);
-        //     canvas.addEventListener('mouseup', mouseStopDrawing);
-        //     canvas.addEventListener('touchend', touchStopDrawing);
-        // };
+        return () => {
+            canvas.addEventListener('mousemove', mouseDraw);
+            canvas.addEventListener('touchmove', touchDraw);
+            canvas.addEventListener('mouseup', mouseStopDrawing);
+            canvas.addEventListener('touchend', touchStopDrawing);
+        };
     }, []);
-
 
     return <>
         <canvas
@@ -74,8 +73,6 @@ const DrawableCanvas = ({ initCanvasHeight, initCanvasWidth, canvasRef, runDetec
             id="sketchCanvas"
             width={initCanvasWidth} height={initCanvasHeight}
         />
-
-
     </>
 }
 

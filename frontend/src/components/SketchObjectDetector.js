@@ -54,7 +54,6 @@ const SketchObjectDetector = ({ session, modelInputShape, iouThreshold, scoreThr
     const [color, setColor] = useState('#000000');
 
     const runDetection = () => {
-        console.log("DETECTING")
         imageRef.current.src = sketchCanvasRef.current.toDataURL('image/png');
     }
 
@@ -158,6 +157,8 @@ const SketchObjectDetector = ({ session, modelInputShape, iouThreshold, scoreThr
         const sketchCtx = sketchCanvas.getContext("2d")
         const boxesCanvas = boxesCanvasRef.current
         const boxesCtx = boxesCanvas.getContext("2d")
+
+
         sketchCtx.fillStyle = '#FFFFFF'
         sketchCtx.fillRect(0, 0, sketchCanvas.width, sketchCanvas.height)
         boxesCtx.fillStyle = '#FFFFFF'
