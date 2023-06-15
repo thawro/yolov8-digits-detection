@@ -1,6 +1,8 @@
 import React, { useState, useRef, useEffect } from "react";
-import { DrawableCanvas, DetectionRenderer } from ".";
+import { DrawableCanvas } from ".";
 import { CustomSlider } from "../components";
+import { detectObjects } from "../utils/detect";
+import { renderBoxes, renderInfo } from "../utils/renderCanvas";
 
 
 const SketchMenu = ({ lineWidth, handleLineWidthChange, color, handleColorChange, canvasWidth, handleCanvasSizeChange, canvasHeight }) => {
@@ -34,7 +36,7 @@ const SketchMenu = ({ lineWidth, handleLineWidthChange, color, handleColorChange
 }
 
 
-const SketchObjectDetector = ({ session, modelInputShape, iouThreshold, scoreThreshold }) => {
+const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass, iouThreshold, scoreThreshold }) => {
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
 
@@ -55,6 +57,19 @@ const SketchObjectDetector = ({ session, modelInputShape, iouThreshold, scoreThr
 
     const runDetection = () => {
         imageRef.current.src = sketchCanvasRef.current.toDataURL('image/png');
+    }
+
+    const detectAndRender = async () => {
+        const { boxes, speed } = await detectObjects(
+            imageRef.current,
+            session,
+            maxOutputBoxesPerClass,
+            iouThreshold,
+            scoreThreshold,
+            modelInputShape
+        );
+        renderBoxes(imageRef, boxesCanvasRef, boxes); // Draw boxes
+        renderInfo(boxesCanvasRef, speed)
     }
 
     useEffect(() => {
@@ -115,41 +130,45 @@ const SketchObjectDetector = ({ session, modelInputShape, iouThreshold, scoreThr
         setColor(color)
     };
 
-    const handleCanvasSizeChange = (event, sizeType) => {
+    const changeCanvasSize = ({ w, h }) => {
         const sketchCanvas = sketchCanvasRef.current
         const sketchCtx = sketchCanvas.getContext("2d")
 
         const boxesCanvas = boxesCanvasRef.current
         const boxesCtx = boxesCanvas.getContext("2d")
 
-        const size = event.target.value
-        const prevSize = sketchCanvas[sizeType]
+        const prevWidth = sketchCanvas.width
+        const prevHeight = sketchCanvas.height
+
         const sketchLineWidth = sketchCtx.lineWidth
         const sketchColor = sketchCtx.strokeStyle
 
         const boxesData = boxesCtx.getImageData(0, 0, canvasWidth, canvasHeight);
         const sketchData = sketchCtx.getImageData(0, 0, canvasWidth, canvasHeight);
 
-        const offset = (size - prevSize) / 2;
+        const offsetX = (w - prevWidth) / 2;
+        const offsetY = (h - prevHeight) / 2;
 
-        sketchCanvas[sizeType] = size
-        boxesCanvas[sizeType] = size
+        sketchCanvas.width = w
+        boxesCanvas.width = w
+
+        sketchCanvas.height = h
+        boxesCanvas.height = h
         clearCanvas()
-
         sketchCtx.strokeStyle = sketchColor
         sketchCtx.lineWidth = sketchLineWidth
-
-
-        if (sizeType === "width") {
-            boxesCtx.putImageData(boxesData, offset, 0);
-            sketchCtx.putImageData(sketchData, offset, 0);
-            setCanvasWidth(size)
-        } else {
-            boxesCtx.putImageData(boxesData, 0, offset);
-            sketchCtx.putImageData(sketchData, 0, offset);
-            setCanvasHeight(size)
-        }
+        boxesCtx.putImageData(boxesData, offsetX, offsetY);
+        sketchCtx.putImageData(sketchData, offsetX, offsetY);
+        setCanvasWidth(w)
+        setCanvasHeight(h)
         runDetection()
+    }
+
+    const handleCanvasSizeChange = (event, sizeType) => {
+        const sketchCanvas = sketchCanvasRef.current
+        const size = event.target.value
+        const params = sizeType === "width" ? { w: size, h: sketchCanvas.height } : { w: sketchCanvas.width, h: size }
+        changeCanvasSize({ ...params })
     };
 
     const clearCanvas = () => {
@@ -157,8 +176,6 @@ const SketchObjectDetector = ({ session, modelInputShape, iouThreshold, scoreThr
         const sketchCtx = sketchCanvas.getContext("2d")
         const boxesCanvas = boxesCanvasRef.current
         const boxesCtx = boxesCanvas.getContext("2d")
-
-
         sketchCtx.fillStyle = '#FFFFFF'
         sketchCtx.fillRect(0, 0, sketchCanvas.width, sketchCanvas.height)
         boxesCtx.fillStyle = '#FFFFFF'
@@ -187,18 +204,10 @@ const SketchObjectDetector = ({ session, modelInputShape, iouThreshold, scoreThr
                 canvasHeight={canvasHeight}
                 canvasWidth={canvasWidth}
             />
-            <DetectionRenderer
-                initCanvasHeight={initCanvasHeight}
-                initCanvasWidth={initCanvasWidth}
-                imageRef={imageRef}
-                canvasRef={boxesCanvasRef}
-                session={session}
-                modelInputShape={modelInputShape}
-                canvasHeight={canvasHeight}
-                canvasWidth={canvasWidth}
-                iouThreshold={iouThreshold}
-                scoreThreshold={scoreThreshold}
-            />
+            <>
+                <canvas id="boxesCanvas" ref={boxesCanvasRef} width={initCanvasWidth} height={initCanvasHeight} />
+                <img ref={imageRef} src="#" alt="" onLoad={detectAndRender} style={{ display: "none" }} />
+            </>
         </div>
         <button onClick={clearCanvas}>Clear</button>
     </>

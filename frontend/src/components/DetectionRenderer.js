@@ -32,7 +32,7 @@ const DetectionRenderer = ({ initCanvasHeight, initCanvasWidth, imageRef, canvas
             ref={imageRef}
             src="#"
             alt=""
-            onLoad={detectAndRender}
+            // onLoad={detectAndRender}
             style={{ display: "none" }}
         />
     </>

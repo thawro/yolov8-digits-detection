@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Loader, Header, SketchObjectDetector, Footer, CustomSlider } from "./components";
+import { Loader, Header, SketchObjectDetector, ImageObjectDetector, Footer, CustomSlider } from "./components";
 import "./style/App.css";
 import { loadOnnxSession } from "./utils/loadOnnxSession";
 
@@ -34,7 +34,8 @@ const App = () => {
     session: session,
     modelInputShape: modelInputShape,
     iouThreshold: iouThreshold,
-    scoreThreshold: scoreThreshold
+    scoreThreshold: scoreThreshold,
+    maxOutputBoxesPerClass: 100
   }
 
   const modelConfigMenuProps = {
@@ -56,7 +57,8 @@ const App = () => {
           <Header />
           <ModelConfigMenu {...modelConfigMenuProps} />
           <div className="detector">
-            <SketchObjectDetector {...detectorProps} />
+            {/* <SketchObjectDetector {...detectorProps} /> */}
+            <ImageObjectDetector {...detectorProps} />
           </div>
           <Footer />
         </>
