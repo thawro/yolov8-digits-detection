@@ -22,7 +22,7 @@ export const detectObjects = async (
     const [modelHeight, modelWidth] = inputShape.slice(2);
     const sourceImgC4 = cv.imread(image); // read from img tag
 
-    const useONNX = false
+    const useONNX = true
 
     const model_input_h = new Tensor("int32", new Int32Array([modelHeight]))
     const model_input_w = new Tensor("int32", new Int32Array([modelWidth]))

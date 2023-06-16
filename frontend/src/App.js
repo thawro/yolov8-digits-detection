@@ -6,7 +6,9 @@ import { loadOnnxSession } from "./utils/loadOnnxSession";
 const ModelConfigMenu = ({ scoreThreshold, setScoreThreshold, iouThreshold, setIouThreshold }) => {
   return <div className="modelConfigMenu">
     <div className="configMenu">
-      <h3 className="configTitle">Model configuration</h3>
+      <h3 className="configTitle" title={"Non Maximum Supression"}>
+        NMS configuration
+      </h3>
       <div className="configInputs">
         <div className="menuItem">
           <label htmlFor="scoreThreshold">Confidence threshold: </label>

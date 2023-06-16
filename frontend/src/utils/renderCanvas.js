@@ -8,7 +8,9 @@ import labels from "../constants/labels.json"
 export const renderBoxes = (imageRef, canvasRef, boxes) => {
     const canvas = canvasRef.current
     const ctx = canvas.getContext("2d");
-    ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clean canvas
+    ctx.fillStyle = '#FFFFFF'
+    ctx.fillRect(0, 0, ctx.canvas.width, ctx.canvas.height)
+    // ctx.clearRect(0, 0, ctx.canvas.width, ctx.canvas.height); // clean canvas
 
     const colors = new Colors();
 

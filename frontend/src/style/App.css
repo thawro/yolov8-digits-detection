@@ -87,7 +87,7 @@ button:hover {
   align-items: center;
   justify-content: center;
   flex-direction: column;
-  width: 70%;
+  width: 100%;
   max-width: 500px;
 }
 
@@ -99,3 +99,43 @@ button:hover {
   width: 100%;
   max-width: 500px;
 }
+
+.exampleImage {
+  cursor: pointer;
+  margin: 0px 5px;
+  border-radius: 10px;
+  /* border: 2px darkgray solid; */
+  transition: box-shadow 0.3s ease;
+
+}
+
+.exampleImage:hover {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+.examples {
+  width: 70%;
+  margin: 10px 0px;
+  display: flex;
+  justify-content: start;
+  /* align-items: center; */
+}
+
+.sketchMenu {
+  width: 70%;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+}
+
+.video-react .video-react-big-play-button {
+  width: 50%;
+  height: 50%;
+  max-width: 3em;
+  max-height: 1.5em;
+}
+
+/* .video-react .video-react-big-play-button::before {
+  content: none;
+} */
