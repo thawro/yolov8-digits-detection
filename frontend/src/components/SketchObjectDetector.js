@@ -5,19 +5,19 @@ import { detectObjects } from "../utils/detect";
 import { renderBoxes, renderInfo } from "../utils/renderCanvas";
 
 
-const SketchMenu = ({ lineWidth, handleLineWidthChange, color, handleColorChange, canvasWidth, handleCanvasSizeChange, canvasHeight }) => {
+const SketchMenu = ({ lineWidth, handleLineWidthChange, color, handleColorChange, handleCanvasSizeChange, canvasWidth, canvasHeight }) => {
     const screenWidth = window.innerWidth;
     const screenHeight = window.innerHeight;
 
     const maxWidth = Math.floor(screenWidth * 0.8)
-    const maxHeight = Math.floor(screenHeight * 0.6)
+    const maxHeight = screenHeight
 
     return <div className="configMenu">
         <h3 className="configTitle">Canvas configuration</h3>
         <div className="configInputs">
             <div className="menuItem">
                 <label htmlFor="lineWidth">Line width: </label>
-                <CustomSlider defaultValue={lineWidth} setValue={handleLineWidthChange} min={2} max={40} step={1} />
+                <CustomSlider value={lineWidth} setValue={handleLineWidthChange} min={2} max={40} step={1} />
             </div>
             <div className="menuItem">
                 <label htmlFor="lineWidth">Color: </label>
@@ -25,11 +25,11 @@ const SketchMenu = ({ lineWidth, handleLineWidthChange, color, handleColorChange
             </div>
             <div className="menuItem">
                 <label htmlFor="canvasWidth">Canvas width: </label>
-                <CustomSlider defaultValue={canvasWidth} setValue={(e) => handleCanvasSizeChange(e, "width")} min={100} max={maxWidth} step={10} />
+                <CustomSlider value={canvasWidth} setValue={(e) => handleCanvasSizeChange(e, "width")} min={100} max={maxWidth} step={10} />
             </div>
             <div className="menuItem">
                 <label htmlFor="canvasHeight">Canvas height: </label>
-                <CustomSlider defaultValue={canvasHeight} setValue={(e) => handleCanvasSizeChange(e, "height")} min={100} max={maxHeight} step={10} />
+                <CustomSlider value={canvasHeight} setValue={(e) => handleCanvasSizeChange(e, "height")} min={100} max={maxHeight} step={10} />
             </div>
         </div>
     </div>
@@ -48,6 +48,9 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
     const [isDrawing, setIsDrawing] = useState(isDrawingRef.current)
 
     const imageRef = useRef(null);
+    const inputImageRef = useRef(null);
+    const localImageRef = useRef(null);
+
 
     const boxesCanvasRef = useRef(null);
     const sketchCanvasRef = useRef(null);
@@ -55,22 +58,6 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
     const [lineWidth, setLineWidth] = useState(6);
     const [color, setColor] = useState('#000000');
 
-    const runDetection = () => {
-        imageRef.current.src = sketchCanvasRef.current.toDataURL('image/png');
-    }
-
-    const detectAndRender = async () => {
-        const { boxes, speed } = await detectObjects(
-            imageRef.current,
-            session,
-            maxOutputBoxesPerClass,
-            iouThreshold,
-            scoreThreshold,
-            modelInputShape
-        );
-        renderBoxes(imageRef, boxesCanvasRef, boxes); // Draw boxes
-        renderInfo(boxesCanvasRef, speed)
-    }
 
     useEffect(() => {
         const sketchCanvas = sketchCanvasRef.current
@@ -130,6 +117,24 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
         setColor(color)
     };
 
+    const updateCanvasProps = ({ height, width, lineWidth, strokeStyle }) => {
+        const sketchCanvas = sketchCanvasRef.current
+        const sketchCtx = sketchCanvas.getContext("2d")
+
+        const boxesCanvas = boxesCanvasRef.current
+        sketchCanvas.width = width
+        boxesCanvas.width = width
+
+        sketchCanvas.height = height
+        boxesCanvas.height = height
+        sketchCtx.strokeStyle = strokeStyle
+        sketchCtx.lineWidth = lineWidth
+
+        setCanvasWidth(width)
+        setCanvasHeight(height)
+
+    }
+
     const changeCanvasSize = ({ w, h }) => {
         const sketchCanvas = sketchCanvasRef.current
         const sketchCtx = sketchCanvas.getContext("2d")
@@ -140,27 +145,18 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
         const prevWidth = sketchCanvas.width
         const prevHeight = sketchCanvas.height
 
-        const sketchLineWidth = sketchCtx.lineWidth
-        const sketchColor = sketchCtx.strokeStyle
-
         const boxesData = boxesCtx.getImageData(0, 0, canvasWidth, canvasHeight);
         const sketchData = sketchCtx.getImageData(0, 0, canvasWidth, canvasHeight);
 
         const offsetX = (w - prevWidth) / 2;
         const offsetY = (h - prevHeight) / 2;
 
-        sketchCanvas.width = w
-        boxesCanvas.width = w
-
-        sketchCanvas.height = h
-        boxesCanvas.height = h
+        updateCanvasProps({ width: w, height: h, lineWidth: lineWidth, strokeStyle: color })
         clearCanvas()
-        sketchCtx.strokeStyle = sketchColor
-        sketchCtx.lineWidth = sketchLineWidth
+
         boxesCtx.putImageData(boxesData, offsetX, offsetY);
         sketchCtx.putImageData(sketchData, offsetX, offsetY);
-        setCanvasWidth(w)
-        setCanvasHeight(h)
+
         runDetection()
     }
 
@@ -183,6 +179,51 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
         imageRef.current.src = sketchCanvas.toDataURL('image/png');
     }
 
+
+    const runDetection = () => {
+        imageRef.current.src = sketchCanvasRef.current.toDataURL('image/png');
+    }
+
+    const detectAndRender = async () => {
+        const { boxes, speed } = await detectObjects(
+            imageRef.current,
+            session,
+            maxOutputBoxesPerClass,
+            iouThreshold,
+            scoreThreshold,
+            modelInputShape
+        );
+        renderBoxes(imageRef, boxesCanvasRef, boxes); // Draw boxes
+        renderInfo(boxesCanvasRef, speed)
+    }
+
+
+    const loadImage = (e) => {
+        const url = URL.createObjectURL(e.target.files[0]); // create image url
+        localImageRef.current.src = url; // set image source
+    }
+
+    const putLocalImageOnCanvas = async () => {
+        const boxesCanvas = boxesCanvasRef.current
+        const sketchCanvas = sketchCanvasRef.current
+
+        const boxesCtx = boxesCanvas.getContext("2d")
+        const sketchCtx = sketchCanvas.getContext("2d")
+
+        updateCanvasProps(
+            {
+                width: localImageRef.current.width,
+                height: localImageRef.current.height,
+                lineWidth: lineWidth,
+                strokeStyle: color
+            }
+        )
+        boxesCtx.drawImage(localImageRef.current, 0, 0)
+        sketchCtx.drawImage(localImageRef.current, 0, 0)
+        runDetection()
+    }
+
+
     return <>
         <SketchMenu
             lineWidth={lineWidth}
@@ -193,6 +234,12 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
             handleCanvasSizeChange={handleCanvasSizeChange}
             canvasHeight={canvasHeight}
         />
+        <div>
+            <input type="file" ref={inputImageRef} accept="image/*" style={{ display: "none" }} onChange={loadImage} />
+            <button onClick={() => { inputImageRef.current.click(); }}>Open local image</button>
+            <button onClick={clearCanvas}>Clear canvas</button>
+            <img ref={localImageRef} src="#" alt="" onLoad={putLocalImageOnCanvas} style={{ display: "none" }} />
+        </div>
         <div>
             <DrawableCanvas
                 initCanvasHeight={initCanvasHeight}
@@ -209,7 +256,7 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
                 <img ref={imageRef} src="#" alt="" onLoad={detectAndRender} style={{ display: "none" }} />
             </>
         </div>
-        <button onClick={clearCanvas}>Clear</button>
+
     </>
 };
 

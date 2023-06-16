@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { Loader, Header, SketchObjectDetector, ImageObjectDetector, Footer, CustomSlider } from "./components";
+import { Loader, Header, SketchObjectDetector, Footer, CustomSlider } from "./components";
 import "./style/App.css";
 import { loadOnnxSession } from "./utils/loadOnnxSession";
 
@@ -10,11 +10,11 @@ const ModelConfigMenu = ({ scoreThreshold, setScoreThreshold, iouThreshold, setI
       <div className="configInputs">
         <div className="menuItem">
           <label htmlFor="scoreThreshold">Confidence threshold: </label>
-          <CustomSlider defaultValue={scoreThreshold} setValue={(e) => setScoreThreshold(e.target.value)} min={0} max={1} step={0.01} />
+          <CustomSlider value={scoreThreshold} setValue={(e) => setScoreThreshold(e.target.value)} min={0} max={1} step={0.01} />
         </div>
         <div className="menuItem">
           <label htmlFor="iouThreshold">IoU threshold: </label>
-          <CustomSlider defaultValue={iouThreshold} setValue={(e) => setIouThreshold(e.target.value)} min={0} max={1} step={0.01} />
+          <CustomSlider value={iouThreshold} setValue={(e) => setIouThreshold(e.target.value)} min={0} max={1} step={0.01} />
         </div>
       </div>
     </div>
@@ -57,8 +57,7 @@ const App = () => {
           <Header />
           <ModelConfigMenu {...modelConfigMenuProps} />
           <div className="detector">
-            {/* <SketchObjectDetector {...detectorProps} /> */}
-            <ImageObjectDetector {...detectorProps} />
+            <SketchObjectDetector {...detectorProps} />
           </div>
           <Footer />
         </>
