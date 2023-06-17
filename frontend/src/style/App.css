@@ -113,12 +113,20 @@ button:hover {
   box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
 }
 
+
+
+.exampleVideo:hover {
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+}
+
+
+
 .examples {
   width: 70%;
   margin: 10px 0px;
   display: flex;
   justify-content: start;
-  /* align-items: center; */
+  align-items: center;
 }
 
 .sketchMenu {
@@ -136,6 +144,41 @@ button:hover {
   max-height: 1.5em;
 }
 
-/* .video-react .video-react-big-play-button::before {
-  content: none;
-} */
+.exampleVideo video {
+  cursor: pointer;
+  margin: 0px 5px;
+  border-radius: 10px;
+  transition: box-shadow 0.3s ease;
+  position: relative;
+  /* width: 100%; */
+}
+
+
+.exampleVideo {
+  position: relative;
+  width: 100%;
+}
+
+.playButton {
+  position: absolute;
+  top: 50%;
+  left: 50%;
+  height: 2em;
+  width: 2em;
+  transform: translate(-50%, -50%);
+  border-radius: 50%;
+  /* background-color: rgba(0, 0, 0, 0.5); */
+  cursor: pointer;
+}
+
+.playButton::before {
+  content: "";
+  position: absolute;
+  top: 50%;
+  left: 40%;
+  transform: translate(-50%, -50%);
+  border-style: solid;
+  border-width: 12px 0px 12px 20px;
+  border-color: transparent transparent transparent white;
+
+}

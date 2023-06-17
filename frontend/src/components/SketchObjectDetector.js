@@ -5,8 +5,7 @@ import { detectObjects } from "../utils/detect";
 import { renderBoxes, renderInfo } from "../utils/renderCanvas";
 import { exampleImages, exampleVideos } from "../constants"
 import { saveAs } from 'file-saver';
-import { Player, ControlBar, PlayToggle } from 'video-react';
-import "video-react/dist/video-react.css"; // import css
+import { BsPlayCircleFill, BsPauseCircleFill } from "react-icons/bs";
 
 const SketchConfigMenu = ({ lineWidth, handleLineWidthChange, color, handleColorChange, handleCanvasSizeChange, canvasWidth, canvasHeight }) => {
     const screenWidth = window.innerWidth;
@@ -47,7 +46,7 @@ const ImageExample = ({ src, loadImage }) => {
     return <img className="exampleImage" width={size} height={size} src={src} onClick={handleLoadImage} />
 }
 
-const VideoExample = ({ src, localVideoRef, handleVideoClick }) => {
+const VideoExample = ({ id, src, handleVideoClick, style }) => {
     const size = 75
     const playerRef = useRef(null)
 
@@ -55,7 +54,10 @@ const VideoExample = ({ src, localVideoRef, handleVideoClick }) => {
         handleVideoClick(playerRef)
     }
 
-    return <video className="exampleImage" ref={playerRef} src={src} width={size} height={size} onClick={handleClick} />
+    return <div className="exampleVideo" onClick={handleClick}>
+        <video id={id} ref={playerRef} src={src} width={size} height={size} style={style} />
+        <BsPlayCircleFill className="playButton" />
+    </div>
 }
 
 
@@ -69,15 +71,14 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
     const [canvasWidth, setCanvasWidth] = useState(initCanvasWidth)
     const isDrawingRef = useRef(false)
     const [isDrawing, setIsDrawing] = useState(isDrawingRef.current)
-    const [showExamples, setShowExamples] = useState(false)
+
+    const exampleVideoRef = useRef(null)
 
     const imageRef = useRef(null);
-    const inputImageRef = useRef(null);
+    const uploadFileRef = useRef(null);
     const localImageRef = useRef(null);
     const localVideoRef = useRef(null);
-
-    const [videoStarted, setVideoStarted] = useState(false)
-
+    const mediaType = useRef("image")
 
     const boxesCanvasRef = useRef(null);
     const sketchCanvasRef = useRef(null);
@@ -149,7 +150,7 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
         const sketchCtx = sketchCanvas.getContext("2d")
 
         const boxesCanvas = boxesCanvasRef.current
-        if (sketchCanvas.width == width && sketchCanvas.height == height) {
+        if (sketchCanvas.width === width && sketchCanvas.height === height) {
             return // no need to update
         }
         sketchCanvas.width = width
@@ -227,31 +228,59 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
         renderInfo(boxesCanvasRef, speed)
     }
 
+    const uploadFile = (file) => {
+        const src = URL.createObjectURL(file)
+        if (file.type.includes("image")) {
+            loadImage(src);
+        } else if (file.type.includes("video")) {
+            loadVideo(src)
+        }
+    }
+
+    const loadVideo = (src) => {
+
+        // const video = document.getElementById("exampleVideo")
+        const video = document.createElement('video');
+        // exampleVideoRef.current.style.display = "block"
+        document.getElementById("exampleVideoDiv").style.display = "block"
+        video.src = src
+        video.addEventListener("loadedmetadata", function (e) {
+            updateCanvasProps({ width: video.videoWidth, height: video.videoHeight, lineWidth: lineWidth, strokeStyle: color })
+            handleVideoClick({ current: video })
+            exampleVideoRef.current.src = src
+
+        })
+
+
+    }
 
     const loadImage = (src) => {
-        // if (!localVideoRef.current.paused) {
-        //     localVideoRef.current.pause()
-        // }
-
+        mediaType.current = "image"
+        if (localVideoRef.current != null) {
+            if (!localVideoRef.current.paused) {
+                localVideoRef.current.pause()
+            }
+        }
         localImageRef.current.src = src; // set image source
     }
 
+    const playVideoOnCanvas = (videoRef, playerRef) => {
+        const height = videoRef.current.videoHeight
+        const width = videoRef.current.videoWidth
+        videoRef.current.play()
+        updateCanvasProps({ width: width, height: height, lineWidth: lineWidth, strokeStyle: color })
+        putLocalVideoOnCanvas(playerRef)
+    }
+
     const handleVideoClick = (playerRef) => {
-        const playVideo = (video) => {
-            const height = video.videoHeight
-            const width = video.videoWidth
-            video.play()
-            putLocalVideoOnCanvas(playerRef)
-            updateCanvasProps({ width: width, height: height, lineWidth: lineWidth, strokeStyle: color })
-        }
+        mediaType.current = "video"
         if (localVideoRef.current === null) { // first time
             localVideoRef.current = playerRef.current
-            playVideo(localVideoRef.current)
+            playVideoOnCanvas(localVideoRef, playerRef)
         } else {
             if (playerRef.current.src === localVideoRef.current.src) { // clicked the same video
-                console.log("SAME")
                 if (localVideoRef.current.paused) {
-                    playVideo(localVideoRef.current)
+                    playVideoOnCanvas(localVideoRef, playerRef)
                 } else {
                     localVideoRef.current.pause()
                 }
@@ -260,7 +289,7 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
                     localVideoRef.current.pause()
                 }
                 localVideoRef.current = playerRef.current
-                playVideo(localVideoRef.current)
+                playVideoOnCanvas(localVideoRef, playerRef)
             }
         }
     }
@@ -286,8 +315,9 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
     }
 
     const putLocalVideoOnCanvas = (playerRef) => {
+        if (mediaType.current !== "video") { return }
+
         if (playerRef.current.src !== localVideoRef.current.src) { return }
-        console.log("Canvas ")
         const sketchCanvas = sketchCanvasRef.current
         const video = localVideoRef.current
 
@@ -322,25 +352,37 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
                 canvasHeight={canvasHeight}
             />
             <div>
-                <button onClick={(e) => setShowExamples(!showExamples)}> {showExamples ? "Hide exampels" : "Show examples"}</button>
-
-                <input type="file" ref={inputImageRef} accept="image/*" style={{ display: "none" }} onChange={(e) => loadImage(URL.createObjectURL(e.target.files[0]))} />
-                <button onClick={() => { inputImageRef.current.click(); }}>Open local image</button>
+                <input
+                    type="file" ref={uploadFileRef}
+                    accept="image/*,video/*" style={{ display: "none" }}
+                    onChange={(e) => uploadFile(e.target.files[0])} />
+                <button onClick={() => { uploadFileRef.current.click(); }}>Upload</button>
                 <button onClick={clearCanvas}>Clear canvas</button>
                 <button onClick={saveCanvas}>Save</button>
             </div>
-            {showExamples &&
-                <div className="examples">
-                    {exampleImages.map((example, index) => (
-                        <ImageExample key={index} src={example} loadImage={loadImage} />
-                    ))}
-                    {exampleVideos.map((example, index) => (
-                        <VideoExample localVideoRef={localVideoRef} src={example} handleVideoClick={handleVideoClick} />
-                    ))}
+            <>
+                <p>Examples:
+                    <div className="examples">
+                        {exampleImages.map((example, index) => (
+                            <ImageExample key={index} src={example} loadImage={loadImage} />
+                        ))}
+                        {exampleVideos.map((example, index) => (
+                            <VideoExample src={example} handleVideoClick={handleVideoClick} />
+                        ))}
+                        <div
+                            id={"exampleVideoDiv"} className="exampleVideo" style={{ display: "none" }}
+                            onClick={(e) => handleVideoClick(exampleVideoRef)}
+                        >
+                            <video
+                                id={"exampleVideo"}
+                                ref={exampleVideoRef} width={75} height={75}
+                            />
+                            <BsPlayCircleFill className="playButton" />
+                        </div>
 
-                </div>
-            }
-
+                    </div>
+                </p>
+            </>
         </div>
         <div className="sketchField">
             <DrawableCanvas
@@ -359,7 +401,6 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
             </>
         </div>
         <img id="upladedImage" ref={localImageRef} src="#" alt="" onLoad={putLocalImageOnCanvas} style={{ visibility: "hidden", display: "none" }} />
-        {/* <video id="upladedVideo" ref={localVideoRef} type="video/mp4" onLoadStart={startLoadVideo} style={{ visibility: "hidden", display: "none" }} /> */}
 
     </>
 };
