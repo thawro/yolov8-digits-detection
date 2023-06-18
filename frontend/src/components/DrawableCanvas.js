@@ -28,7 +28,7 @@ const DrawableCanvas = ({ initCanvasHeight, initCanvasWidth, canvasRef, runDetec
         const stopDrawing = () => {
             runDetection()
             isDrawingRef.current = false
-            document.documentElement.style.overflow = 'auto';
+            // document.documentElement.style.overflow = 'auto'; //TODO
             setIsDrawing(false)
         }
 

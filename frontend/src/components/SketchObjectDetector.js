@@ -37,7 +37,6 @@ const SketchConfigMenu = ({ lineWidth, handleLineWidthChange, color, handleColor
     </div>
 }
 
-
 const ImageExample = ({ src, loadImage }) => {
     const size = 75
     const handleLoadImage = (e) => {
@@ -77,7 +76,10 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
     const imageRef = useRef(null);
     const uploadFileRef = useRef(null);
     const localImageRef = useRef(null);
-    const localVideoRef = useRef(null);
+
+    const videoRef = useRef(null);
+    const idRef = useRef(null)
+
     const mediaType = useRef("image")
 
     const boxesCanvasRef = useRef(null);
@@ -99,7 +101,7 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
 
         const startDrawing = () => {
             isDrawingRef.current = true
-            document.documentElement.style.overflow = 'hidden';
+            // document.documentElement.style.overflow = 'hidden'; // TODO
             setIsDrawing(true)
             sketchCtx.beginPath();
         }
@@ -210,7 +212,6 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
         imageRef.current.src = sketchCanvas.toDataURL('image/png');
     }
 
-
     const runDetection = () => {
         imageRef.current.src = sketchCanvasRef.current.toDataURL('image/png');
     }
@@ -239,60 +240,87 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
 
     const loadVideo = (src) => {
 
-        // const video = document.getElementById("exampleVideo")
-        const video = document.createElement('video');
-        // exampleVideoRef.current.style.display = "block"
-        document.getElementById("exampleVideoDiv").style.display = "block"
-        video.src = src
-        video.addEventListener("loadedmetadata", function (e) {
-            updateCanvasProps({ width: video.videoWidth, height: video.videoHeight, lineWidth: lineWidth, strokeStyle: color })
-            handleVideoClick({ current: video })
-            exampleVideoRef.current.src = src
+        if (exampleVideoRef.current.src !== "") {
+            console.log("pausing previous video by id")
+            exampleVideoRef.current.pause()
+        }
+        exampleVideoRef.current.src = src
 
-        })
+        // exampleVideoRef.current.addEventListener("loadedmetadata", function (e) {
+        //     updateCanvasProps({ width: exampleVideoRef.current.videoWidth, height: exampleVideoRef.current.videoHeight, lineWidth: lineWidth, strokeStyle: color })
+        // })
+        // exampleVideoRef.current.addEventListener("loadeddata", function (e) {
+        //     handleVideoClick(exampleVideoRef)
+        // })
+        // exampleVideoRef.current.load()
 
 
     }
 
     const loadImage = (src) => {
         mediaType.current = "image"
-        if (localVideoRef.current != null) {
-            if (!localVideoRef.current.paused) {
-                localVideoRef.current.pause()
+        if (videoRef.current != null) {
+            if (!videoRef.current.paused) {
+                videoRef.current.pause()
             }
         }
         localImageRef.current.src = src; // set image source
     }
 
-    const playVideoOnCanvas = (videoRef, playerRef) => {
-        const height = videoRef.current.videoHeight
-        const width = videoRef.current.videoWidth
-        videoRef.current.play()
+    const putVideoOnCanvas = (playerRef) => {
+        if (mediaType.current !== "video") { return }
+        if (playerRef.current.src !== videoRef.current.src) { return }
+        console.log("Video on canvas ", playerRef.current.src)
+        const sketchCanvas = sketchCanvasRef.current
+        const sketchCtx = sketchCanvas.getContext("2d")
+        sketchCtx.drawImage(playerRef.current, 0, 0, sketchCanvas.width, sketchCanvas.height)
+        runDetection()
+        if (!playerRef.current.paused && !playerRef.current.ended) {
+            idRef.current = setTimeout(putVideoOnCanvas, 1000 / 15, playerRef)
+        }
+    }
+
+    const playVideo = (playerRef) => {
+        const height = playerRef.current.videoHeight
+        const width = playerRef.current.videoWidth
+        videoRef.current = playerRef.current
         updateCanvasProps({ width: width, height: height, lineWidth: lineWidth, strokeStyle: color })
-        putLocalVideoOnCanvas(playerRef)
+        playerRef.current.play()
+        putVideoOnCanvas(playerRef)
+        // playerRef.current.load()
+        // playerRef.current.addEventListener("loadedmetadata", function (e) {
+        //     updateCanvasProps({ width: width, height: height, lineWidth: lineWidth, strokeStyle: color })
+        // })
+        // playerRef.current.addEventListener("loadeddata", function (e) {
+        //     playerRef.current.play()
+        //     putVideoOnCanvas(playerRef)
+        // })
     }
 
     const handleVideoClick = (playerRef) => {
         mediaType.current = "video"
-        if (localVideoRef.current === null) { // first time
-            localVideoRef.current = playerRef.current
-            playVideoOnCanvas(localVideoRef, playerRef)
+        if (videoRef.current.src === "") { // first time
+            console.log("FIRST TIME")
+            playVideo(playerRef)
         } else {
-            if (playerRef.current.src === localVideoRef.current.src) { // clicked the same video
-                if (localVideoRef.current.paused) {
-                    playVideoOnCanvas(localVideoRef, playerRef)
+            if (playerRef.current.src === videoRef.current.src) { // clicked the same video
+                if (playerRef.current.paused) {
+                    console.log("PLAY SAME")
+                    playVideo(playerRef)
                 } else {
-                    localVideoRef.current.pause()
+                    console.log("PAUSE SAME")
+                    playerRef.current.pause()
+                    clearTimeout(idRef.current);
                 }
             } else { // clicked other video
-                if (!localVideoRef.current.paused) {
-                    localVideoRef.current.pause()
-                }
-                localVideoRef.current = playerRef.current
-                playVideoOnCanvas(localVideoRef, playerRef)
+                console.log("PLAY NEW")
+                videoRef.current.pause()
+                clearTimeout(idRef.current);
+                playVideo(playerRef)
             }
         }
     }
+
 
     const putLocalImageOnCanvas = async () => {
         const boxesCanvas = boxesCanvasRef.current
@@ -314,24 +342,7 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
         runDetection()
     }
 
-    const putLocalVideoOnCanvas = (playerRef) => {
-        if (mediaType.current !== "video") { return }
 
-        if (playerRef.current.src !== localVideoRef.current.src) { return }
-        const sketchCanvas = sketchCanvasRef.current
-        const video = localVideoRef.current
-
-        const sketchCtx = sketchCanvas.getContext("2d")
-
-        sketchCtx.drawImage(video, 0, 0, sketchCanvas.width, sketchCanvas.height)
-        runDetection()
-        if (!video.paused && !video.ended) {
-            const fps = 15
-            const latency_ms = 1000 / fps
-            setTimeout(putLocalVideoOnCanvas, latency_ms, playerRef)
-        }
-
-    }
 
     const saveCanvas = () => {
         boxesCanvasRef.current.toBlob(function (blob) {
@@ -369,17 +380,7 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
                         {exampleVideos.map((example, index) => (
                             <VideoExample src={example} handleVideoClick={handleVideoClick} />
                         ))}
-                        <div
-                            id={"exampleVideoDiv"} className="exampleVideo" style={{ display: "none" }}
-                            onClick={(e) => handleVideoClick(exampleVideoRef)}
-                        >
-                            <video
-                                id={"exampleVideo"}
-                                ref={exampleVideoRef} width={75} height={75}
-                            />
-                            <BsPlayCircleFill className="playButton" />
-                        </div>
-
+                        <video id={"exampleVideo"} ref={videoRef} width={75} height={75} style={{ visibility: "hidden" }} />
                     </div>
                 </p>
             </>

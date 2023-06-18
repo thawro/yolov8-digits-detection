@@ -71,8 +71,6 @@ export const renderInfo = (canvasRef, speed) => {
     const canvas = canvasRef.current
     const ctx = canvas.getContext("2d");
 
-    const colors = new Colors();
-
     ctx.textBaseline = "top";
     const H = canvas.height
     const W = canvas.width
