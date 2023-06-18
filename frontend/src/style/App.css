@@ -24,6 +24,10 @@
   margin: 5px 0;
 }
 
+.instruction {
+  text-align: start;
+}
+
 .code {
   padding: 5px;
   color: greenyellow;
