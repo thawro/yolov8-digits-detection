@@ -8,7 +8,6 @@
 .header {
   text-align: center;
   padding-top: 10px;
-  margin-bottom: 30px;
 }
 
 .footer {
@@ -40,7 +39,8 @@
   flex-direction: column;
 }
 
-.detector {
+.modelConfigMenu {
+  /* margin-bottom: 20px; */
   margin-top: 20px;
 }
 
@@ -100,42 +100,70 @@ button:hover {
   max-width: 500px;
 }
 
-.exampleImage {
-  cursor: pointer;
-  margin: 0px 5px;
-  border-radius: 10px;
-  /* border: 2px darkgray solid; */
-  transition: box-shadow 0.3s ease;
-
-}
-
-.exampleImage:hover {
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
-}
 
 
-
+.exampleImage:hover,
 .exampleVideo:hover {
-  box-shadow: 0 0 8px rgba(0, 0, 0, 0.5);
+  box-shadow: 0 0 8px rgba(0, 0, 0, 0.8);
 }
 
 
 
-.examples {
-  width: 100%;
-  margin: 10px 0px;
+.canvasOptions {
   display: flex;
-  justify-content: start;
-  align-items: center;
+  width: 100%;
+  margin-bottom: 20px;
+  margin-top: 20px;
+
 }
 
 .sketchMenu {
-  width: 70%;
+  width: 50%;
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
 }
+
+.examples {
+  width: 50%;
+  margin: 10px 0px;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+}
+
+.exampleVideos {
+  display: flex;
+  flex-direction: row;
+}
+
+/* .examples {
+  display: flex;
+} */
+
+.exampleImage,
+.exampleVideo {
+  margin: 5px 5px;
+  border-radius: 10px;
+  transition: box-shadow 0.3s ease;
+  cursor: pointer;
+}
+
+.exampleImage {
+  width: 75px;
+  height: 75px;
+}
+
+.exampleVideo {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  position: relative;
+  width: 75px;
+
+}
+
 
 .video-react .video-react-big-play-button {
   width: 50%;
@@ -144,19 +172,18 @@ button:hover {
   max-height: 1.5em;
 }
 
+
+
 .exampleVideo video {
-  cursor: pointer;
   margin: 0px 5px;
   border-radius: 10px;
   transition: box-shadow 0.3s ease;
-  position: relative;
-  /* width: 100%; */
+  width: 75px;
+  /* height: 75px; */
 }
 
-
-.exampleVideo {
-  position: relative;
-  width: 100%;
+.uploadedVideo video {
+  border: 2px red solid;
 }
 
 .playButton {
@@ -167,18 +194,5 @@ button:hover {
   width: 2em;
   transform: translate(-50%, -50%);
   border-radius: 50%;
-  /* background-color: rgba(0, 0, 0, 0.5); */
   cursor: pointer;
-}
-
-.playButton::before {
-  content: "";
-  position: absolute;
-  top: 50%;
-  left: 40%;
-  transform: translate(-50%, -50%);
-  border-style: solid;
-  border-width: 12px 0px 12px 20px;
-  border-color: transparent transparent transparent white;
-
 }

@@ -56,15 +56,13 @@ const SketchConfigMenu = ({ lineWidth, handleLineWidthChange, color, handleColor
 }
 
 const ImageExample = ({ src, loadImage }) => {
-    const size = 75
     const handleLoadImage = (e) => {
         loadImage(src)
     }
-    return <img className="exampleImage" width={size} height={size} src={src} onClick={handleLoadImage} />
+    return <img className="exampleImage" src={src} onClick={handleLoadImage} />
 }
 
 const VideoExample = ({ src, handleVideoClick }) => {
-    const size = 75
     const playerRef = useRef(null)
     const [button, setButton] = useState(playButton)
 
@@ -77,7 +75,7 @@ const VideoExample = ({ src, handleVideoClick }) => {
     }
 
     return <div className="exampleVideo" onClick={handleClick}>
-        <video ref={playerRef} src={src} width={size} height={size} />
+        <video ref={playerRef} src={src} />
         {button}
     </div>
 }
@@ -357,48 +355,115 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
         });
     }
 
+    const mediaRecorderRef = useRef(null)
+    const chunksRef = useRef(null)
+    const [isRecording, setIsRecording] = useState(false)
+    const [isPausedRecording, setIsPausedRecording] = useState(false)
+
+    const startCanvasRecording = () => {
+        setIsRecording(true)
+        chunksRef.current = [];
+        var canvasStream = boxesCanvasRef.current.captureStream(30);
+        var mediaRecorder = new MediaRecorder(canvasStream, { mimeType: "video/webm" });
+        mediaRecorder.ondataavailable = (e) => {
+            if (chunksRef.current !== null) {
+                chunksRef.current.push(e.data);
+            }
+        };
+        mediaRecorder.start(1000);
+        mediaRecorderRef.current = mediaRecorder
+    }
+
+    const stopCanvasRecordingAndSave = () => {
+        setIsRecording(false)
+        setIsPausedRecording(false)
+        mediaRecorderRef.current.stop()
+        var blob = new Blob(chunksRef.current, { type: "video/webm" });
+        saveAs(blob, "predictions.webm");
+        mediaRecorderRef.current = null;
+        chunksRef.current = null;
+    }
+
+    const pauseCanvasRecording = () => {
+        mediaRecorderRef.current.pause()
+        setIsPausedRecording(true)
+    }
+
+    const resumeCanvasRecording = () => {
+        mediaRecorderRef.current.resume()
+        setIsPausedRecording(false)
+    }
+
+    const quitCanvasRecording = () => {
+        setIsRecording(false)
+        setIsPausedRecording(false)
+        mediaRecorderRef.current.stop()
+        mediaRecorderRef.current = null
+        chunksRef.current = null;
+    }
+
     return <>
-        <div className="sketchMenu">
-            <SketchConfigMenu
-                lineWidth={lineWidth}
-                handleLineWidthChange={handleLineWidthChange}
-                color={color}
-                handleColorChange={handleColorChange}
-                canvasWidth={canvasWidth}
-                handleCanvasSizeChange={handleCanvasSizeChange}
-                canvasHeight={canvasHeight}
-            />
-            <div>
-                <input
-                    type="file" ref={uploadFileRef}
-                    accept="image/*,video/*" style={{ display: "none" }}
-                    onChange={(e) => uploadFile(e.target.files[0])} />
-                <button onClick={() => { uploadFileRef.current.click(); }}>Upload</button>
-                <button onClick={clearCanvas}>Clear canvas</button>
-                <button onClick={saveCanvas}>Save</button>
+        <div className="canvasOptions">
+            <div className="sketchMenu">
+                <SketchConfigMenu
+                    lineWidth={lineWidth}
+                    handleLineWidthChange={handleLineWidthChange}
+                    color={color}
+                    handleColorChange={handleColorChange}
+                    canvasWidth={canvasWidth}
+                    handleCanvasSizeChange={handleCanvasSizeChange}
+                    canvasHeight={canvasHeight}
+                />
+                <div>
+                    <button onClick={clearCanvas}>Clear canvas</button>
+                    <input
+                        type="file" ref={uploadFileRef}
+                        accept="image/*,video/*" style={{ display: "none" }}
+                        onChange={(e) => uploadFile(e.target.files[0])} />
+                    <button onClick={() => { uploadFileRef.current.click(); }}>Upload</button>
+
+                    <button onClick={saveCanvas}>Save snapshot</button>
+                    <br />
+                    {isRecording ?
+                        <>
+                            {isPausedRecording ?
+                                <button onClick={resumeCanvasRecording}>Resume</button> :
+                                <button onClick={pauseCanvasRecording}>Pause</button>
+                            }
+                            <button onClick={quitCanvasRecording}>Quit</button>
+                            <button onClick={stopCanvasRecordingAndSave}>Save</button>
+                        </> :
+                        <button onClick={startCanvasRecording}>Record</button>
+                    }
+
+                </div>
             </div>
-            <div>
-                <p>Examples: </p>
-                <div className="examples">
+            <div className="examples">
+                <p>Example Images </p>
+                <div className="exampleImages">
                     {exampleImages.map((example, index) => (
                         <ImageExample key={index} src={example} loadImage={loadImage} />
                     ))}
+                </div>
+
+                <p>Example Videos </p>
+                <div className="exampleVideos">
                     {exampleVideos.map((example, index) => (
                         <VideoExample src={example} handleVideoClick={handleVideoClick} />
                     ))}
                     <div
-                        className="exampleVideo"
+                        className="exampleVideo uploadedVideo"
                         onClick={(e) => { handleVideoClick(uploadedVideoRef) }}
                         style={{ visibility: "hidden" }}
                     >
-                        <video id={"uploadedVideo"} ref={uploadedVideoRef} width={75} height={75} />
+                        <video ref={uploadedVideoRef} />
                         {uploadedVideoButton}
                     </div>
                     <video
                         id={"currentlyPlayedVideo"}
                         ref={videoRef}
-                        width={75}
-                        height={75}
+                        width={1}
+                        height={1}
                         style={{ visibility: "hidden" }}
                     />
                 </div>
@@ -421,7 +486,6 @@ const SketchObjectDetector = ({ session, modelInputShape, maxOutputBoxesPerClass
             </>
         </div>
         <img id="upladedImage" ref={localImageRef} src="#" alt="" onLoad={putLocalImageOnCanvas} style={{ visibility: "hidden", display: "none" }} />
-
     </>
 };
 
