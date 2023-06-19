@@ -3,7 +3,7 @@ import glob
 import numpy as np
 from src.object_detection import OnnxObjectDetector, ObjectDetector
 
-use_onnx = False
+use_onnx = True
 iou_threshold = 0.7
 score_threshold = 0.25
 
@@ -13,7 +13,7 @@ else:
     object_detector = ObjectDetector()
 
 
-examples = glob.glob("datasets/SVHN/examples/*")
+examples = glob.glob("datasets/yolo_HWD+/examples/*")
 
 
 def predict(image: np.ndarray):
