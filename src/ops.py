@@ -88,8 +88,6 @@ def resize_pad(
         new_img_h = h
         new_img_w = int(h * aspect_ratio)
     resized_img = cv2.resize(image, (new_img_w, new_img_h))
-    print(resized_img.shape)
-    # width, height ratios
     padded_img = np.ones((h, w, img_c)) * fill_value
     pad_x = w - new_img_w
     pad_y = h - new_img_h

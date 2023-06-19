@@ -1,12 +1,7 @@
-# pull official base image
-FROM node:18.16.0
-
-# set working directory
+FROM python:3.11
+RUN apt-get update && apt-get install ffmpeg libsm6 libxext6  -y
 WORKDIR /app
 
-RUN userdel -r node
-
-# USER root
 RUN useradd -m -u 1000 user
 USER user
 ENV HOME=/home/user \
@@ -14,9 +9,10 @@ ENV HOME=/home/user \
 
 WORKDIR $HOME/app
 
-COPY --chown=user frontend/ $HOME
+COPY --chown=user . $HOME/app
 
-RUN npm install
 
-# start app
-CMD ["npm", "start"]
+RUN pip3.11 install --no-cache-dir --upgrade -r $HOME/app/requirements.txt
+
+
+CMD ["gradio", "src/gradio_app.py"]
