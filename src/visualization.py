@@ -75,7 +75,7 @@ def plot_bbox(
     image: np.ndarray,
     bbox_xyxy: np.ndarray | list[int] | tuple[int, int, int, int],
     class_name: str,
-    confidence: float,
+    confidence: float | None,
     color: tuple[int, int, int] = (255, 0, 0),
     txt_color: tuple[int, int, int] = (255, 255, 255),
     lw: float | None = None,
@@ -87,7 +87,7 @@ def plot_bbox(
         bbox_xyxy (np.ndarray | list[int] | tuple[int, int, int, int]):
             xmin, ymin, xmax, ymax box coordinates.
         class_name (str): Name of the object inside the box.
-        confidence (float): Confidence of the prediction.
+        confidence (float, optional): Confidence of the prediction.
         color (tuple[int, int, int], optional): Rectangle color. Defaults to (255, 0, 0).
         txt_color (tuple[int, int, int], optional): Text color. Defaults to (255, 255, 255).
         lw (float | None, optional): Rectangle line width. Defaults to None.
@@ -97,7 +97,10 @@ def plot_bbox(
     """
     lw = lw or max(round(sum(image.shape) / 2 * 0.003), 2)  # line width
     x_min, y_min, x_max, y_max = bbox_xyxy
-    txt_label = f"{class_name} {confidence:.1f}"
+    if confidence is not None:
+        txt_label = f"{class_name} {confidence:.1f}"
+    else:
+        txt_label = class_name
     p1, p2 = (x_min, y_min), (x_max, y_max)
     cv2.rectangle(image, p1, p2, color, thickness=lw, lineType=cv2.LINE_AA)
     tf = max(lw - 1, 1)  # font thickness
@@ -122,7 +125,7 @@ def plot_yolo_labels(
     image: np.ndarray,
     bboxes_xywhn: np.ndarray,
     class_ids: np.ndarray,
-    confidences: np.ndarray,
+    confidences: np.ndarray | None = None,
     id2name: dict[int, str] | None = None,
     plot: bool = False,
 ) -> np.ndarray:
@@ -132,7 +135,7 @@ def plot_yolo_labels(
         image (np.ndarray): Image to plot box on.
         bboxes_xywhn (np.ndarray): Predicted boxes in xywhn format.
         class_ids (np.ndarray): Class id of each box.
-        confidences (np.ndarray): Prediction confidences of each box.
+        confidences (np.ndarray, optional): Prediction confidences of each box.
         id2name (dict[int, str], optional): Mapping from class_id to class_name.
             Defaults to None (ids are used as class names).
         plot (bool, optional): Whether to plot labels using matplotlib. Defaults to False.
@@ -146,6 +149,8 @@ def plot_yolo_labels(
     img_h, img_w, img_c = boxes_img.shape
     if not isinstance(bboxes_xywhn, np.ndarray):
         bboxes_xywhn = np.array(bboxes_xywhn)
+    if confidences is None:
+        confidences = [None] * len(class_ids)
     bboxes_xywh = xywhn2xywh(bboxes_xywhn, h=img_h, w=img_w)
     bboxes_xyxy = xywh2xyxy(bboxes_xywh).tolist()
     for bbox, class_id, conf in zip(bboxes_xyxy, class_ids, confidences):

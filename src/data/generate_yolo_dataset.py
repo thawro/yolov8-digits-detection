@@ -98,17 +98,19 @@ def generate_yolo_example(
 
     bboxes = []
     labels = []
-    for i, (img, class_id) in enumerate(zip(imgs, class_ids)):
-        row, col = i // ncols, i % ncols
+    # for i, (img, class_id) in enumerate(zip(imgs, class_ids)):
+    for i in range(nrows * ncols):  # make sure that only nrows * ncols images are used
         if random.random() > p_box:
             continue
+
+        img, class_id = imgs[i], class_ids[i]
+        row, col = i // ncols, i % ncols
         box_x_min = col * box_w + margin_w
         box_x_max = box_x_min + box_w
         box_y_min = row * box_h + margin_h
         box_y_max = box_y_min + box_h
 
-        digit = get_digit(img)
-        h, w = digit.shape
+        h, w, *_ = img.shape
         w_ratio = box_w / w
         h_ratio = box_h / h
 
@@ -118,8 +120,8 @@ def generate_yolo_example(
         else:
             fx = box_w / w
             fy = fx
-        digit = cv2.resize(digit, (0, 0), fx=fx, fy=fy)
-        h, w = digit.shape
+        img = cv2.resize(img, (0, 0), fx=fx, fy=fy)
+        h, w, *_ = img.shape
 
         x_center = random.randint(box_x_min + box_w // 3, box_x_max - box_w // 3)
         y_center = random.randint(box_y_min + box_h // 3, box_y_max - box_h // 3)
@@ -133,14 +135,13 @@ def generate_yolo_example(
         x_min, x_max = x_center - left, x_center + right
         y_min, y_max = y_center - bottom, y_center + top
         bg_patch = bg_img[y_min:y_max, x_min:x_max]
-        bg_img[y_min:y_max, x_min:x_max] = bg_patch & digit
+        bg_img[y_min:y_max, x_min:x_max] = bg_patch & img
         x_center_n = x_center / BG_W
         y_center_n = y_center / BG_H
         w_n = w / BG_W
         h_n = h / BG_H
 
         bboxes.append([x_center_n, y_center_n, w_n, h_n])
-
         labels.append(class_id)
 
     bboxes = np.array(bboxes)
@@ -151,6 +152,10 @@ def generate_yolo_example(
         bbox_params=A.BboxParams(format="yolo", label_fields=["labels"]),
     )
     transformed = transform(image=bg_img, bboxes=bboxes, labels=labels)
+    if len(bg_img.shape) == 2:  # gray
+        # digits dataset is in gray, so repeating RGB to get 3 channels for YOLO
+        transformed["image"] = transformed["image"][..., np.newaxis]
+        transformed["image"] = np.repeat(transformed["image"], 3, axis=2)
     return transformed
 
 
@@ -211,9 +216,9 @@ def generate_yolo_split_data(
         image = transformed["image"]
         bboxes = transformed["bboxes"]
         classes = transformed["labels"]
-        image = image[..., np.newaxis]
-        # digits dataset is in gray, so repeating RGB to get 3 channels for YOLO
-        image = np.repeat(image, 3, axis=2)
+        # image = image[..., np.newaxis]
+        # # digits dataset is in gray, so repeating RGB to get 3 channels for YOLO
+        # image = np.repeat(image, 3, axis=2)
         if len(bboxes) == 0:
             continue
         Image.fromarray(image).save(str(dst_images_dirpath / f"{i}.png"))
@@ -228,7 +233,11 @@ def generate_yolo_split_data(
 
 
 def generate_yolo_dataset(
-    old_ds_path: Path, new_ds_path: Path, train_ratio: float = 0.8, val_ratio: float = 0.1
+    old_ds_path: Path,
+    new_ds_path: Path,
+    train_ratio: float = 0.8,
+    val_ratio: float = 0.1,
+    n_images: int = 1000,
 ):
     """Generates yolo dataset for all splits.
 
@@ -242,7 +251,11 @@ def generate_yolo_dataset(
             create train dataset. Defaults to 0.8.
         val_ratio (float, optional): Ratio of source images used to
             create val dataset. Defaults to 0.1.
+        n_images (int, optional): Total number of images to generate.
+            Split ratios are applied for that aswell
+
     """
+    test_ratio = 1 - train_ratio - val_ratio
     all_images_filepaths = np.array(glob.glob(str(old_ds_path / "images/*")))
     N = len(all_images_filepaths)
     all_idxs = list(range(N))
@@ -259,9 +272,13 @@ def generate_yolo_dataset(
     val_image_filepaths = all_images_filepaths[val_idxs]
     test_image_filepaths = all_images_filepaths[test_idxs]
 
-    generate_yolo_split_data(train_image_filepaths, new_ds_path, "train", n_images=500)
-    generate_yolo_split_data(val_image_filepaths, new_ds_path, "val", n_images=50)
-    generate_yolo_split_data(test_image_filepaths, new_ds_path, "test", n_images=50)
+    train_n_images = int(train_ratio * n_images)
+    val_n_images = int(val_ratio * n_images)
+    test_n_images = int(test_ratio * n_images)
+
+    generate_yolo_split_data(train_image_filepaths, new_ds_path, "train", n_images=train_n_images)
+    generate_yolo_split_data(val_image_filepaths, new_ds_path, "val", n_images=val_n_images)
+    generate_yolo_split_data(test_image_filepaths, new_ds_path, "test", n_images=test_n_images)
 
 
 if __name__ == "__main__":
