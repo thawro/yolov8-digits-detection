@@ -2,10 +2,12 @@ import numpy as np
 import random
 import cv2
 import albumentations as A
+from albumentations.core.composition import TransformsSeqType
 from src.utils.utils import DATA_PATH, read_text_file, save_txt_to_file
 from src.utils.pylogger import get_pylogger
 from pathlib import Path
-
+from typing import Literal
+import albumentations as A
 from PIL import Image
 from tqdm.auto import tqdm
 import glob
@@ -63,7 +65,11 @@ def generate_yolo_example(
     nrows: int = 3,
     ncols: int = 3,
     p_box: float = 0.5,
+    mix_mode: Literal["and", "or", "equal", "random"] = "random",
     imgsz: tuple[int, int] = (640, 640),
+    pre_transform: A.Compose | None = None,
+    obj_transform: A.Compose | None = None,
+    post_transforms: TransformsSeqType | None = None,
 ) -> dict[str, np.ndarray]:
     """Generate image for further yolo training.
     First a grid `nrows x ncols` is created, then for each `i` cell in the grid
@@ -79,13 +85,32 @@ def generate_yolo_example(
         ncols (int, optional): Number of grid cols. Defaults to 3.
         p_box (float, optional): Probability that an object will be sampled
             at [row, col] position. Defaults to 0.5.
+        mix_mode (Literal["and", "or", "equal", "random"]): How to mix object box with background image.
+            "and" applies `&` operator, "or" applier `|` operator, "equal" sets object box directly,
+            "random" randomly choses one of ["and", "or", "equal"] for each box. Default to "random".
         imgsz (tuple[int, int], optional): Desired image size ([height, width]).
             Defaults to (640, 640).
+        pre_transform (A.Compose, optional): transform applied to the background of the grid
+            before sampling single objects.
+        obj_transform (A.Compose, optional): transform applied to each single object put on the grid.
+        post_transforms (TransformsSeqType, optional): transforms applied to the grid
+            after objects sampling.
 
     Returns:
         dict[str, np.ndarray]: Example YOLO training imput, that is a `dict` with
             `image`, `bboxes`, `labels` keys.
     """
+
+    def mix_box_with_bg(mode: Literal["and", "or", "equal", "random"], bg_patch, box_img):
+        if mode == "and":
+            return bg_patch & box_img
+        elif mode == "or":
+            return bg_patch | box_img
+        elif mode == "equal":
+            return box_img
+        elif mode == "random":
+            return mix_box_with_bg(random.choice(["and", "or", "equal"]), bg_patch, box_img)
+
     H, W = imgsz
 
     box_h, box_w = H // nrows, W // ncols
@@ -94,7 +119,9 @@ def generate_yolo_example(
     margin_w = box_w // 2
 
     BG_H, BG_W = H + margin_h * 2, W + margin_w * 2
-    bg_img = np.ones((BG_H, BG_W)).astype(np.uint8) * 255
+    bg_img = np.ones((BG_H, BG_W, 3)).astype(np.uint8) * 255
+    if pre_transform is not None:
+        bg_img = pre_transform(image=bg_img)["image"]
 
     bboxes = []
     labels = []
@@ -121,7 +148,11 @@ def generate_yolo_example(
             fx = box_w / w
             fy = fx
         img = cv2.resize(img, (0, 0), fx=fx, fy=fy)
-        h, w, *_ = img.shape
+        h, w, *c = img.shape
+        if len(c) == 0:  # gray -> RGB
+            # digits dataset is in gray, so repeating RGB to get 3 channels for YOLO
+            img = img[..., np.newaxis]
+            img = np.repeat(img, 3, axis=2)
 
         x_center = random.randint(box_x_min + box_w // 3, box_x_max - box_w // 3)
         y_center = random.randint(box_y_min + box_h // 3, box_y_max - box_h // 3)
@@ -134,8 +165,11 @@ def generate_yolo_example(
 
         x_min, x_max = x_center - left, x_center + right
         y_min, y_max = y_center - bottom, y_center + top
+        if obj_transform is not None:
+            img = obj_transform(image=img)["image"]
         bg_patch = bg_img[y_min:y_max, x_min:x_max]
-        bg_img[y_min:y_max, x_min:x_max] = bg_patch & img
+        bg_img[y_min:y_max, x_min:x_max] = mix_box_with_bg(mix_mode, bg_patch, img)
+
         x_center_n = x_center / BG_W
         y_center_n = y_center / BG_H
         w_n = w / BG_W
@@ -146,16 +180,14 @@ def generate_yolo_example(
 
     bboxes = np.array(bboxes)
     labels = np.array(labels)
-
+    transforms = [A.augmentations.crops.transforms.CenterCrop(H, W)]
+    if post_transforms is not None:
+        transforms.extend(post_transforms)
     transform = A.Compose(
-        [A.augmentations.crops.transforms.CenterCrop(H, W)],
+        transforms,
         bbox_params=A.BboxParams(format="yolo", label_fields=["labels"]),
     )
     transformed = transform(image=bg_img, bboxes=bboxes, labels=labels)
-    if len(bg_img.shape) == 2:  # gray
-        # digits dataset is in gray, so repeating RGB to get 3 channels for YOLO
-        transformed["image"] = transformed["image"][..., np.newaxis]
-        transformed["image"] = np.repeat(transformed["image"], 3, axis=2)
     return transformed
 
 
@@ -169,7 +201,11 @@ def generate_yolo_split_data(
     ncols_low: int = 2,
     ncols_high: int = 8,
     p_box: float = 0.5,
+    mix_mode: Literal["and", "or", "equal", "random"] = "random",
     imgsz: tuple[int, int] = (640, 640),
+    pre_transform: A.Compose | None = None,
+    obj_transform: A.Compose | None = None,
+    post_transforms: TransformsSeqType | None = None,
 ):
     """Generates yolo-like dataset using images from `images_filepaths`
     and save this dataset to `new_ds_path`.
@@ -188,8 +224,16 @@ def generate_yolo_split_data(
         ncols_high (int, optional): High boundary of ncols for grid sampling. Defaults to 8.
         p_box (float, optional): Probability that an object will be sampled
             at [row, col] position. Defaults to 0.5.
+        mix_mode (Literal["and", "or", "equal", "random"]): How to mix object box with background image.
+            "and" applies `&` operator, "or" applier `|` operator, "equal" sets object box directly,
+            "random" randomly choses one of ["and", "or", "equal"] for each box. Default to "random".
         imgsz (tuple[int, int], optional): Desired image size ([height, width]).
             Defaults to (640, 640).
+        pre_transform (A.Compose, optional): transform applied to the background of the grid
+            before sampling single objects.
+        obj_transform (A.Compose, optional): transform applied to each single object put on the grid.
+        post_transforms (TransformsSeqType, optional): transforms applied to the grid
+            after objects sampling.
     """
     labels_filepaths = np.array(
         [path.replace("images/", "labels/").replace(".png", ".txt") for path in images_filepaths]
@@ -211,14 +255,20 @@ def generate_yolo_split_data(
         imgs = [np.asarray(Image.open(filepath)) for filepath in images_filepaths[random_idxs]]
         labels = [read_text_file(filepath)[0] for filepath in labels_filepaths[random_idxs]]
         transformed = generate_yolo_example(
-            imgs, labels, nrows=nrows, ncols=ncols, p_box=p_box, imgsz=imgsz
+            imgs,
+            labels,
+            nrows=nrows,
+            ncols=ncols,
+            p_box=p_box,
+            mix_mode=mix_mode,
+            imgsz=imgsz,
+            pre_transform=pre_transform,
+            obj_transform=obj_transform,
+            post_transforms=post_transforms,
         )
         image = transformed["image"]
         bboxes = transformed["bboxes"]
         classes = transformed["labels"]
-        # image = image[..., np.newaxis]
-        # # digits dataset is in gray, so repeating RGB to get 3 channels for YOLO
-        # image = np.repeat(image, 3, axis=2)
         if len(bboxes) == 0:
             continue
         Image.fromarray(image).save(str(dst_images_dirpath / f"{i}.png"))
@@ -276,9 +326,44 @@ def generate_yolo_dataset(
     val_n_images = int(val_ratio * n_images)
     test_n_images = int(test_ratio * n_images)
 
-    generate_yolo_split_data(train_image_filepaths, new_ds_path, "train", n_images=train_n_images)
-    generate_yolo_split_data(val_image_filepaths, new_ds_path, "val", n_images=val_n_images)
-    generate_yolo_split_data(test_image_filepaths, new_ds_path, "test", n_images=test_n_images)
+    pre_transform = A.Compose(
+        [
+            A.RGBShift(r_shift_limit=128, g_shift_limit=128, b_shift_limit=128, p=0.5),
+            A.ChannelShuffle(p=0.3),
+        ]
+    )
+
+    obj_transform = A.Compose(
+        [
+            A.InvertImg(p=0.3),
+            A.RGBShift(r_shift_limit=128, g_shift_limit=128, b_shift_limit=128, p=0.5),
+            A.ChannelShuffle(p=0.3),
+        ]
+    )
+
+    post_transforms = [
+        A.Rotate(limit=10, border_mode=cv2.BORDER_REPLICATE, p=1),
+    ]
+
+    kwargs = dict(
+        new_ds_path=new_ds_path,
+        nrows_low=1,
+        nrows_high=8,
+        ncols_low=1,
+        ncols_high=8,
+        p_box=0.5,
+        mix_mode="and",
+        imgsz=(640, 640),
+        pre_transform=pre_transform,
+        obj_transform=obj_transform,
+        post_transforms=post_transforms,
+    )
+
+    generate_yolo_split_data(
+        train_image_filepaths, split="train", n_images=train_n_images, **kwargs
+    )
+    generate_yolo_split_data(val_image_filepaths, split="val", n_images=val_n_images, **kwargs)
+    generate_yolo_split_data(test_image_filepaths, split="test", n_images=test_n_images, **kwargs)
 
 
 if __name__ == "__main__":
@@ -287,4 +372,8 @@ if __name__ == "__main__":
 
     # save_single_objects(old_ds_path)
 
-    generate_yolo_dataset(old_ds_path, new_ds_path)
+    generate_yolo_dataset(
+        old_ds_path,
+        new_ds_path,
+        n_images=10_000,
+    )
