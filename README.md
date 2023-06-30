@@ -39,3 +39,9 @@ Each step of data pipeline is done with ONNX models. The complete pipeline durin
 
 
 # **Model's results**
+
+## Image
+![image_prediction](img/image_prediction.png)
+
+## Video
+![video_prediction](img/video_prediction.gif)
