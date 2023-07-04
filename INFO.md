@@ -6,7 +6,7 @@ An example of how model works in real world scenario can be viewed at **[https:/
 The dataset consists of images created with the use of a [HWD+](https://www.ncbi.nlm.nih.gov/pmc/articles/PMC9702948/) dataset (more [here](https://github.com/thawro/yolov8-digits-detection#data)).
 
 ## Pipeline
-Each step of data pipeline is done with ONNX models. The complete pipeline during inference is the following:
+Each pipeline step is done with ONNX models. The complete pipeline during inference is the following:
 1. Image preprocessing - resize and pad to match model input size ([preprocessing](models/preprocessing.onnx))
 2. Object detection - Detect objects with YOLOv8 model ([yolo](models/yolo.onnx))
 3. Non Maximum Supression - Apply NMS to YOLO output ([nms](models/nms.onnx))

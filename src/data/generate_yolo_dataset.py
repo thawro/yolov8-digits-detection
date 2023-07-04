@@ -7,7 +7,6 @@ from src.utils.utils import DATA_PATH, read_text_file, save_txt_to_file
 from src.utils.pylogger import get_pylogger
 from pathlib import Path
 from typing import Literal
-import albumentations as A
 from PIL import Image
 from tqdm.auto import tqdm
 import glob

@@ -29,9 +29,17 @@ Example below:
 #### Formed grid (left) and with annotations (right)
 ![yolo_example](img/yolo_example.jpeg)
 
+# **Tech stack**
+* [PyTorch](https://pytorch.org/) - neural networks architectures and datasets classes
+* [ONNX](https://onnx.ai/) - All processing steps used in [pipeline](#pipeline)
+* [ONNX Runtime](https://onnxruntime.ai/) - Pipeline inference
+* [OpenCV](https://opencv.org/) - Image processing for the server-side model inference (optional)
+* [React](https://react.dev/) - Web application used to test object detection models in real world examples
+
+
 
 # **Pipeline**
-Each step of data pipeline is done with ONNX models. The complete pipeline during inference is the following:
+Each pipeline step is done with ONNX models. The complete pipeline during inference is the following:
 1. Image preprocessing - resize and pad to match model input size ([preprocessing](models/preprocessing.onnx))
 2. Object detection - Detect objects with YOLOv8 model ([yolo](models/yolo.onnx))
 3. Non Maximum Supression - Apply NMS to YOLO output ([nms](models/nms.onnx))
