@@ -32,6 +32,7 @@ gradio = "^3.30.0"
 onnx = "1.13.1"
 colored = "^1.4.4"
 optimum = {extras = ["onnxruntime-gpu"], version = "^1.8.7"}
+torchmetrics = "^1.0.0"
 
 
 [tool.poetry.group.dev.dependencies]

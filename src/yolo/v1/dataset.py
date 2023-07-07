@@ -7,18 +7,17 @@ class YOLOv1Dataset(YOLOBaseDataset):
     def __init__(
         self,
         S: int,
-        C: int,
         B: int,
         root: str,
-        split: Literal["train", "test", "extra"] = "train",
+        split: Literal["train", "test", "val"] = "train",
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
         download: bool = False,
     ):
         self.S = S  # grid size
-        self.C = C  # num classes
         self.B = B  # num boxes
         super().__init__(root, split, transform, target_transform, download)
+        self.C = len(self.labels)
 
     def __getitem__(self, idx: int) -> Any:
         image, annots = self.get_raw_data(idx)
@@ -56,4 +55,5 @@ class YOLOv1Dataset(YOLOBaseDataset):
                 # one hot class label
                 annots_matrix[i, j, int(label)] = 1
 
+        image = torch.Tensor(image).permute(2, 0, 1) / 255
         return image, annots_matrix

@@ -1,6 +1,7 @@
-import torch
 from torch import nn
 from collections import OrderedDict
+from src.yolo.utils import cellboxes_to_boxes, NMS
+import torch
 
 
 class CNNBlock(nn.Module):
@@ -26,9 +27,10 @@ class CNNBlock(nn.Module):
         x = self.conv(x)
         if self.batchnorm is not None:
             x = self.batchnorm(x)
+        x = self.activation(x)
         if self.maxpool is not None:
             x = self.maxpool(x)
-        return self.activation(x)
+        return x
 
 
 backbone_config = [
@@ -56,6 +58,8 @@ backbone_config = [
     # 5
     (512, 1, 1, False),
     (1024, 3, 1, False),
+    (512, 1, 1, False),
+    (1024, 3, 1, False),
     (1024, 3, 1, False),
     (1024, 3, 2, False),
     # 6
@@ -65,7 +69,7 @@ backbone_config = [
 
 
 class YOLOv1Backbone(nn.Module):
-    def __init__(self, config: list[tuple[int, int, int, bool]]):
+    def __init__(self, config):
         super().__init__()
         self.config = config
         in_channels = 3
@@ -92,9 +96,6 @@ class YOLOv1Backbone(nn.Module):
 class YOLOv1Head(nn.Module):
     def __init__(self, backbone_out_channels: int, S: int, C: int, B: int):
         super().__init__()
-        self.S = S
-        self.C = C
-        self.B = B
         self.net = nn.Sequential(
             nn.Flatten(),
             nn.Linear(in_features=backbone_out_channels * S * S, out_features=496),
@@ -105,15 +106,45 @@ class YOLOv1Head(nn.Module):
 
     def forward(self, x):
         out = self.net(x)
-        return out.reshape(-1, self.S, self.S, self.C + self.B * 5)
+        return out
 
 
-class YOLOv1Model(nn.Module):
+class YOLOv1(nn.Module):
     def __init__(self, S: int, C: int, B: int):
+        self.S = S
+        self.C = C
+        self.B = B
         super().__init__()
         self.backbone = YOLOv1Backbone(backbone_config)
         self.head = YOLOv1Head(self.backbone.out_channels, S, C, B)
 
     def forward(self, x):
         features = self.backbone(x)
-        return self.head(features)
+        out = self.head(features)
+        return out.reshape(-1, self.S, self.S, self.C + self.B * 5)
+
+    def inference(self, x):
+        """
+        cell_boxes shape: [batch_size, S, S, C + B * 5]
+        preds shape: [batch_size, S * S, 6]
+        best_class, objectness, x, y, w, h
+        """
+        cell_boxes = self(x).to("cpu")
+        boxes_preds = cellboxes_to_boxes(cell_boxes, self.S, self.C, self.B)
+        return boxes_preds
+
+    def perform_nms(
+        self,
+        boxes_preds: torch.Tensor,
+        iou_threshold: float = 0.5,
+        objectness_threshold: float = 0.4,
+    ):
+        all_nms_boxes = []
+        for i, boxes in enumerate(boxes_preds):
+            nms_boxes = NMS(
+                boxes,
+                iou_threshold=iou_threshold,
+                objectness_threshold=objectness_threshold,
+            )
+            all_nms_boxes.append(nms_boxes)
+        return all_nms_boxes

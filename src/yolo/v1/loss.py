@@ -3,8 +3,10 @@ from torch import nn
 from src.yolo.utils import calculate_boxes_iou
 
 
-class YOLOv1Loss(nn.Module):
-    def __init__(self, C: int, B: int, lambda_coord: float = 5.0, lambda_noobj: float = 0.5):
+class YoloLoss(nn.Module):
+    def __init__(
+        self, S: int, C: int, B: int, lambda_coord: float = 5.0, lambda_noobj: float = 0.5
+    ):
         super().__init__()
         self.C = C
         self.B = B
@@ -32,13 +34,18 @@ class YOLOv1Loss(nn.Module):
         obj_bestbox_preds = obj_preds.gather(1, bestbox_xywh_idxs)
         obj_box_targets = obj_targets[:, self.C + 1 : self.C + 5]
 
-        obj_bestbox_preds[:, 2:] = torch.sign(obj_bestbox_preds[:, 2:]) * torch.sqrt(
-            abs(obj_bestbox_preds[:, 2:]) + 1e-10
-        )
-        obj_box_targets[:, 2:] = torch.sqrt(obj_box_targets[:, 2:])
+        obj_bestbox_preds_xy = obj_bestbox_preds[:, :2]
+        obj_box_targets_xy = obj_box_targets[:, :2]
 
-        box_loss = self.mse(obj_bestbox_preds.flatten(), obj_box_targets.flatten())
-        return box_loss
+        obj_bestbox_preds_wh = obj_bestbox_preds[:, 2:]
+        obj_bestbox_preds_wh = torch.sign(obj_bestbox_preds_wh) * torch.sqrt(
+            abs(obj_bestbox_preds_wh) + 1e-6
+        )
+        obj_box_targets_wh = torch.sqrt(obj_box_targets[:, 2:])
+
+        xy_loss = self.mse(obj_bestbox_preds_xy, obj_box_targets_xy)
+        wh_loss = self.mse(obj_bestbox_preds_wh, obj_box_targets_wh)
+        return xy_loss + wh_loss
 
     def _object_loss(
         self, obj_preds: torch.Tensor, obj_targets: torch.Tensor, bestbox_obj_idxs: torch.Tensor
@@ -75,7 +82,7 @@ class YOLOv1Loss(nn.Module):
         """
         no_obj_object_preds = noobj_preds[:, self.C :][:, ::5]
         no_obj_object_targets = noobj_targets[:, self.C :][:, ::5]
-        no_object_loss = self.mse(no_obj_object_preds.flatten(), no_obj_object_targets.flatten())
+        no_object_loss = self.mse(no_obj_object_preds, no_obj_object_targets)
         return no_object_loss
 
     def _class_loss(self, obj_preds: torch.Tensor, obj_targets: torch.Tensor):
@@ -90,10 +97,11 @@ class YOLOv1Loss(nn.Module):
         """
         obj_class_preds = obj_preds[:, : self.C]
         obj_class_targets = obj_targets[:, : self.C]
-        class_loss = self.mse(torch.flatten(obj_class_preds), torch.flatten(obj_class_targets))
+        class_loss = self.mse(obj_class_preds, obj_class_targets)
         return class_loss
 
     def forward(self, preds: torch.Tensor, targets: torch.Tensor):
+        # preds and targets of shapes: [batch_size, S, S, C + B * 5]
         boxes_iou = []
         for box_idx in range(self.B):
             box_start_idx = self.C + 1 + box_idx * 5
@@ -115,12 +123,13 @@ class YOLOv1Loss(nn.Module):
         noobj_preds = preds[~obj_mask]  # only preds without objects
         noobj_targets = targets[~obj_mask]  # only targets without objects
 
+        DEVICE = obj_preds.device
         bestbox_xywh_idxs = torch.tensor(
             [range(box_idx * 5 + self.C + 1, box_idx * 5 + self.C + 5) for box_idx in bestbox_idxs]
-        )
+        ).to(DEVICE)
         bestbox_obj_idxs = torch.tensor(
             [range(box_idx * 5 + self.C, box_idx * 5 + self.C + 1) for box_idx in bestbox_idxs]
-        )
+        ).to(DEVICE)
 
         box_loss = self._box_loss(obj_preds, obj_targets, bestbox_xywh_idxs)
         object_loss = self._object_loss(obj_preds, obj_targets, bestbox_obj_idxs)

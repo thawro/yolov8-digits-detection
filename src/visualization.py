@@ -158,7 +158,7 @@ def plot_yolo_labels(
         color = colors(class_id)
         boxes_img = plot_bbox(boxes_img, bbox, class_name, conf, color)
     if plot:
-        plt.figure(figsize=(12, 12))
+        plt.figure(figsize=(6, 6))
         plt.axis("off")
         plt.imshow(boxes_img)
     return boxes_img

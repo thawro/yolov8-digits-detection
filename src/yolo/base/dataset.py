@@ -14,7 +14,7 @@ class YOLOBaseDataset(torchvision.datasets.VisionDataset):
     def __init__(
         self,
         root: str,
-        split: Literal["train", "test", "extra"] = "train",
+        split: Literal["train", "test", "val"] = "train",
         transform: Optional[Callable] = None,
         target_transform: Optional[Callable] = None,
         download: bool = False,
@@ -25,9 +25,12 @@ class YOLOBaseDataset(torchvision.datasets.VisionDataset):
         if download:
             self.download()
 
-        self._image_files = glob.glob(f"{self.images_path}/*.png")
+        self.labels = read_text_file(f"{root}/labels.txt")
+
+        self._image_files = glob.glob(f"{self.images_path}/*")
+        ext = self._image_files[0].split(".")[-1]
         self._label_files = [
-            img_file.replace("images/", "labels/").replace(".png", ".txt")
+            img_file.replace("images/", "labels/").replace(f".{ext}", ".txt")
             for img_file in self._image_files
         ]
 
@@ -43,6 +46,9 @@ class YOLOBaseDataset(torchvision.datasets.VisionDataset):
         image = np.array(Image.open(image_filepath).convert("RGB"))
         annotations = read_text_file(labels_filepath)
         return image, annotations
+
+    def __len__(self):
+        return len(self._label_files)
 
     def download(self):
         pass
