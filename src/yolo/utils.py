@@ -4,6 +4,9 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.patches as patches
 from collections import Counter
+from src.yolo.v1 import YOLOv1Dataset
+import albumentations as A
+from torch.utils.data import DataLoader
 
 
 def calculate_boxes_iou(boxes_preds, boxes_labels):
@@ -178,38 +181,20 @@ def MAP(C, pred_boxes, true_boxes, iou_threshold=0.5):
     return sum(average_precisions) / len(average_precisions)
 
 
-def get_boxes_for_dataloader(model, dataloader, iou_threshold, objectness_threshold):
-    all_pred_boxes = []
-    all_true_boxes = []
+def create_dataloaders(S: int, B: int, dataset_path: str, **dataloader_kwargs):
+    transform = A.Compose(
+        [A.Resize(448, 448)],
+        bbox_params=A.BboxParams(format="yolo", label_fields=["labels"]),
+    )
+    train_ds = YOLOv1Dataset(S, B, dataset_path, "train", transform)
+    val_ds = YOLOv1Dataset(S, B, dataset_path, "val", transform)
+    test_ds = YOLOv1Dataset(S, B, dataset_path, "test", transform)
 
-    # make sure model is in eval before get bboxes
-    model.eval()
+    train_dl = DataLoader(dataset=train_ds, shuffle=True, **dataloader_kwargs)
+    val_dl = DataLoader(dataset=val_ds, shuffle=True, **dataloader_kwargs)
+    test_dl = DataLoader(dataset=test_ds, shuffle=True, **dataloader_kwargs)
 
-    train_idx = 0
-
-    for batch_idx, (x, labels) in enumerate(dataloader):
-        batch_size = x.shape[0]
-        x = x.to("cuda")
-        labels = labels.to("cpu")
-
-        with torch.no_grad():
-            pred_boxes = model.inference(x)
-            pred_boxes = model.perform_nms(pred_boxes, iou_threshold, objectness_threshold)
-
-        true_boxes = cellboxes_to_boxes(labels, S=model.S, C=model.C, B=model.B)
-
-        for idx in range(batch_size):
-            for nms_box in pred_boxes[idx]:
-                all_pred_boxes.append([train_idx] + nms_box)
-
-            for box in true_boxes[idx]:
-                if box[1] > objectness_threshold:
-                    all_true_boxes.append([train_idx] + box.tolist())
-
-            train_idx += 1
-
-    model.train()
-    return all_pred_boxes, all_true_boxes
+    return train_dl, val_dl, test_dl
 
 
 def cellboxes_to_boxes(cell_boxes: torch.Tensor, S: int, C: int, B: int) -> torch.Tensor:
@@ -248,7 +233,7 @@ def cellboxes_to_boxes(cell_boxes: torch.Tensor, S: int, C: int, B: int) -> torc
     boxes_xy_cell = best_boxes_xywh[..., :2]
     boxes_wh_cell = best_boxes_xywh[..., 2:]
 
-    ij = torch.arange(7).repeat(7, 1).unsqueeze(-1).unsqueeze(0)
+    ij = torch.arange(7).repeat(7, 1).unsqueeze(-1).unsqueeze(0).to(cell_boxes.device)
     x = (boxes_xy_cell[..., 0:1] + ij) / S
     y = 1 / S * (boxes_xy_cell[..., 1:2] + ij.permute(0, 2, 1, 3))
     wh = boxes_wh_cell / S
@@ -275,7 +260,6 @@ def plot_image(image, boxes):
     # Create a Rectangle potch
     for box in boxes:
         box = box[2:]
-        assert len(box) == 4, "Got more values than in x, y, w, h, in a box!"
         upper_left_x = box[0] - box[2] / 2
         upper_left_y = box[1] - box[3] / 2
         rect = patches.Rectangle(
@@ -297,8 +281,9 @@ def save_checkpoint(ckpt, path="ckpt.pt"):
     torch.save(ckpt, path)
 
 
-def load_checkpoint(path, model, optimizer):
+def load_checkpoint(path, model, optimizer=None):
     ckpt = torch.load(path)
     print("=> Loading checkpoint")
     model.load_state_dict(ckpt["model_state_dict"])
-    optimizer.load_state_dict(ckpt["optimizer_state_dict"])
+    if optimizer is not None:
+        optimizer.load_state_dict(ckpt["optimizer_state_dict"])
