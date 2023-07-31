@@ -6,7 +6,7 @@ from src.utils.utils import (
     download_file,
     save_txt_to_file,
     read_text_file,
-    copy_files,
+    copy_all_files,
     remove_directory,
 )
 from src.utils.pylogger import get_pylogger
@@ -137,7 +137,7 @@ class SVHNDataset(torchvision.datasets.VisionDataset):
 
         label_filenames = [filename.replace(".png", ".txt") for filename in img_filenames]
 
-        copy_files(old_data_dir, self.images_path, ext=".png")
+        copy_all_files(old_data_dir, self.images_path, ext=".png")
         remove_directory(old_data_dir)
 
         for bbox_info, img_filename, label_filename in tqdm(

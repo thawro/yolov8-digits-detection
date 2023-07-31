@@ -135,13 +135,13 @@ frozenlist = ">=1.1.0"
 
 [[package]]
 name = "albumentations"
-version = "1.3.0"
+version = "1.3.1"
 description = "Fast image augmentation library and easy to use wrapper around other libraries"
 optional = false
-python-versions = ">=3.6"
+python-versions = ">=3.7"
 files = [
-    {file = "albumentations-1.3.0-py3-none-any.whl", hash = "sha256:294165d87d03bc8323e484927f0a5c1a3c64b0e7b9c32a979582a6c93c363bdf"},
-    {file = "albumentations-1.3.0.tar.gz", hash = "sha256:be1af36832c8893314f2a5550e8ac19801e04770734c1b70fa3c996b41f37bed"},
+    {file = "albumentations-1.3.1-py3-none-any.whl", hash = "sha256:6b641d13733181d9ecdc29550e6ad580d1bfa9d25e2213a66940062f25e291bd"},
+    {file = "albumentations-1.3.1.tar.gz", hash = "sha256:a6a38388fe546c568071e8c82f414498e86c9ed03c08b58e7a88b31cf7a244c6"},
 ]
 
 [package.dependencies]
@@ -150,7 +150,7 @@ opencv-python-headless = ">=4.1.1"
 PyYAML = "*"
 qudida = ">=0.0.4"
 scikit-image = ">=0.16.1"
-scipy = "*"
+scipy = ">=1.1.0"
 
 [package.extras]
 develop = ["imgaug (>=0.4.0)", "pytest"]
@@ -4872,4 +4872,4 @@ multidict = ">=4.0"
 [metadata]
 lock-version = "2.0"
 python-versions = "^3.11"
-content-hash = "77e7415395773aa1f0dfe9abb9b984bb6e84c073ee1f29a4762bca362696fcae"
+content-hash = "f413db91ae0e8ffda0db58c368d9f002efb9fd7a69b756252d1fb1343a7233b8"

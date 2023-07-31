@@ -90,7 +90,7 @@ def remove_directory(dir_path):
     log.info(f"Removed {dir_path} directory")
 
 
-def copy_files(source_dir, destination_dir, ext=".png"):
+def copy_all_files(source_dir, destination_dir, ext=".png"):
     filenames = os.listdir(source_dir)
     for filename in tqdm(filenames, desc="Copying files"):
         if filename.lower().endswith(ext):
@@ -99,3 +99,11 @@ def copy_files(source_dir, destination_dir, ext=".png"):
             shutil.copy2(source, destination)
 
     log.info(f"Copied all {ext} files ({len(filenames)}) from {source_dir} to {destination_dir}.")
+
+
+def copy_files(source_filepaths, dest_filepaths):
+    for source_filepath, dest_filepath in tqdm(
+        zip(source_filepaths, dest_filepaths), desc="Copying files"
+    ):
+        shutil.copy2(source_filepath, dest_filepath)
+    log.info(f"Copied files ({len(source_filepaths)}).")

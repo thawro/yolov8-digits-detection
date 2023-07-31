@@ -4,12 +4,12 @@ import cv2
 import albumentations as A
 from albumentations.core.composition import TransformsSeqType
 from src.utils.utils import DATA_PATH, read_text_file, save_txt_to_file
-from src.utils.pylogger import get_pylogger
 from pathlib import Path
 from typing import Literal
 from PIL import Image
 from tqdm.auto import tqdm
 import glob
+from src.utils.pylogger import get_pylogger
 
 log = get_pylogger(__name__)
 
